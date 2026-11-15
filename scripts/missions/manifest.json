@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "missions",
+  "name": "Mission Creator",
+  "version": "1.0.0",
+  "description": "Create a HeavyMP mission from a chat command or a route preset.",
+  "entry": "index.mjs",
+  "permissions": ["missions.create"],
+  "missionCreators": []
+}

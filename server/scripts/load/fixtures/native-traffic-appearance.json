@@ -1,0 +1,783 @@
+{
+  "provenance": "Models, seeds, wheel flags/colors and paints read from ETS2 1.61.1.9s on 2026-10-28; test poses are synthetic, not a driving simulation.",
+  "samples": [
+    {
+      "nativeId": 28,
+      "vehicleType": 0,
+      "lookSeed": 0.960517168045044,
+      "position": [
+        10,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/truck/volvo.fh_2024/volvo_fh_2024_slp_4x2.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/f_wheel/steel.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/r_wheel/steel.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 5,
+          "path": "/def/vehicle/ai/truck/volvo.fh_2024/accessory/trlr_cables/stock.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 29,
+      "vehicleType": 255,
+      "lookSeed": 0.2569880485534668,
+      "position": [
+        10,
+        10,
+        -15
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/trailer/tirsan_scs/ch_3.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_65_alu.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_65_alu.sii",
+          "flags": 65538,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_65_alu.sii",
+          "flags": 131076,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 4,
+          "path": "/def/vehicle/trailer/tirsan_scs/company_paint_job/rump.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 4,
+      "vehicleType": 0,
+      "lookSeed": 0.7561273574829102,
+      "position": [
+        40,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/mendward_x124_85/chassis_spoiler.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/front_19in_l.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/rear_19in_l.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 8,
+      "vehicleType": 0,
+      "lookSeed": 0.3545703887939453,
+      "position": [
+        70,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/truck/scania.r_2016/scania_r_2016_nrm_4x2.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/f_wheel/steel.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/r_wheel/steel.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 5,
+          "path": "/def/vehicle/ai/truck/scania.r_2016/accessory/trlr_cables/stock.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 9,
+      "vehicleType": 255,
+      "lookSeed": 0.31165504455566406,
+      "position": [
+        70,
+        10,
+        -15
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/trailer/schw_cistern_food/chassis.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 4,
+          "path": "/def/vehicle/trailer/schw_cistern_food/company_paint_job/mamont.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_65_steel.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_65_steel.sii",
+          "flags": 65538,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_65_steel.sii",
+          "flags": 131076,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 20,
+      "vehicleType": 0,
+      "lookSeed": 0.8880555629730225,
+      "position": [
+        100,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/mercedes_ce/chassis.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/front_19in_l.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/rear_19in_l.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 24,
+      "vehicleType": 0,
+      "lookSeed": 0.6542849540710449,
+      "position": [
+        130,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/truck/man.tgx_2020/man_tgx_2020_gn_6x2.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/f_wheel/steel.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/r_wheel/steel_single.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/r_wheel/steel.sii",
+          "flags": 131074,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 5,
+          "path": "/def/vehicle/ai/truck/man.tgx_2020/accessory/trlr_cables/stock.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 25,
+      "vehicleType": 255,
+      "lookSeed": 0.6053030490875244,
+      "position": [
+        130,
+        10,
+        -15
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/trailer/feldbinder_kip/ch_3_60.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_55_steel.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_55_steel.sii",
+          "flags": 65538,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_55_steel.sii",
+          "flags": 131076,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 4,
+          "path": "/def/vehicle/trailer/feldbinder_kip/company_paint_job/log_atlan.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 0,
+      "vehicleType": 0,
+      "lookSeed": 0.017815470695495605,
+      "position": [
+        160,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/ixcent_pickup_midclass_24/chassis_camper_02.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/front_car_modern_18in_02.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/rear_car_modern_18in_02.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 16,
+      "vehicleType": 0,
+      "lookSeed": 0.2859145402908325,
+      "position": [
+        190,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/truck/man.tgx/man_tgx_xxl_4x2.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/f_wheel/steel.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/r_wheel/steel.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 5,
+          "path": "/def/vehicle/ai/truck/man.tgx/accessory/trlr_cables/stock.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 17,
+      "vehicleType": 255,
+      "lookSeed": 0.32555150985717773,
+      "position": [
+        190,
+        10,
+        -15
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/trailer/scs_box/reefer/chassis.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_55_alu.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_55_alu.sii",
+          "flags": 65538,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/t_wheel/single_385_55_alu.sii",
+          "flags": 131076,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 4,
+          "path": "/def/vehicle/trailer/scs_box/reefer/company_paint_job/default.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "nativeId": 12,
+      "vehicleType": 0,
+      "lookSeed": 0.1619093418121338,
+      "position": [
+        220,
+        10,
+        0
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "lights": 0,
+      "accessories": [
+        {
+          "kind": 1,
+          "path": "/def/vehicle/ai/astra/chassis.sii",
+          "flags": 0,
+          "colors": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/front_16in_2.sii",
+          "flags": 0,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": 3,
+          "path": "/def/vehicle/ai_wheel/rear_16in_2.sii",
+          "flags": 65536,
+          "colors": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    }
+  ]
+}

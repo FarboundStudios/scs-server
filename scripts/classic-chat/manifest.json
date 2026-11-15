@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "id": "classic-chat",
+  "name": "Classic Chat",
+  "version": "1.0.0",
+  "description": "Original HeavyMP chat overlay with global, local and VTC channels.",
+  "entry": "index.mjs"
+}

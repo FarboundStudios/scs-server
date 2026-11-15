@@ -1,0 +1,25 @@
+{
+  "name": "heavymp-server",
+  "version": "0.7.0",
+  "description": "Self-hosted HeavyMP game server and HVMP Server Manager",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/system/main.mjs",
+    "server": "node --env-file-if-exists=.env server/system/main.mjs",
+    "client": "node client/main.mjs",
+    "discover": "node launcher/discover.mjs",
+    "test": "node --test test/*.test.mjs",
+    "console": "node --env-file-if-exists=.env server/scripts/cli.mjs",
+    "addons:check": "node --env-file-if-exists=.env server/scripts/addons-check.mjs",
+    "load:test": "node server/scripts/load-test.mjs",
+    "client:fingerprint": "node client/fingerprint.mjs"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  }
+}

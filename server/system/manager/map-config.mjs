@@ -1,0 +1,2 @@
+import {open} from 'node:fs/promises';import {join} from 'node:path';import {DEFAULT_MAP,validateMap} from './assets/map-coordinates.mjs';
+export async function managerMap(directory){if(!directory)return validateMap(DEFAULT_MAP);let file;try{file=await open(join(directory,'manager-map.json'),'r');const s=await file.stat();if(!s.isFile()||s.size>16384)throw Error('invalid_map_config');return validateMap(JSON.parse(await file.readFile('utf8')));}catch(e){if(e.code==='ENOENT')return validateMap(DEFAULT_MAP);throw Error('invalid_map_config');}finally{await file?.close();}}

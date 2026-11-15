@@ -1,0 +1,302 @@
+{
+  "plate": "LOAD TEST",
+  "accessories": [
+    {
+      "kind": 1,
+      "path": "/def/vehicle/truck/scania.r/data.sii"
+    },
+    {
+      "kind": 1,
+      "path": "/def/vehicle/truck/scania.r/chassis/4x2.sii"
+    },
+    {
+      "kind": 1,
+      "path": "/def/vehicle/truck/scania.r/cabin/normal.sii"
+    },
+    {
+      "kind": 1,
+      "path": "/def/vehicle/truck/scania.r/interior/normal.sii"
+    },
+    {
+      "kind": 1,
+      "path": "/def/vehicle/truck/scania.r/engine/dc13_360.sii"
+    },
+    {
+      "kind": 1,
+      "path": "/def/vehicle/truck/scania.r/transmission/12_speed.sii"
+    },
+    {
+      "kind": 1,
+      "path": "/def/vehicle/truck/scania.r/head_light/standard.sii"
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/f_tire/1.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/r_tire/1.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 4,
+      "path": "/def/vehicle/truck/scania.r/paint_job/color0.sii",
+      "colors": [
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/doorstep/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/doorhndl/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/mirror/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/s_mirror/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/sunshld/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/f_mirror/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/sideskirt/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/badge/r360.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/f_disc/front_disc_02_matt_gray.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/r_bumper/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/f_intake_cab/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/steering_w/standard.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/c_badge/euro_none.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/f_intake_chs/shape1.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/f_hub/front_hub_01.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/f_nuts/front_nuts_01_steel.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/r_disc/rear_disc_01_matt_gray.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/r_hub/rear_hub_01.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 3,
+      "path": "/def/vehicle/r_nuts/rear_nuts_01_steel.sii",
+      "flags": 0,
+      "colors": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/r_mudflap/r_mudflap.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    },
+    {
+      "kind": 5,
+      "path": "/def/vehicle/truck/scania.r/accessory/trlr_cables/stock.sii",
+      "colors": [
+        0,
+        0,
+        0
+      ],
+      "tokens": [],
+      "hookups": []
+    }
+  ]
+}

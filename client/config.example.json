@@ -1,0 +1,10 @@
+{
+  "host": "server.example.org",
+  "port": 443,
+  "room": "HeavyMP",
+  "name": "Player",
+  "telemetryPort": 34061,
+  "monitorPort": 34062,
+  "vehiclePort": 34063,
+  "plaintext": false
+}

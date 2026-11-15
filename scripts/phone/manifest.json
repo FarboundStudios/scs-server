@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "id": "phone",
+  "name": "HeavyMP Phone",
+  "version": "1.0.0",
+  "description": "In-game phone with messaging, calls and apps.",
+  "entry": "index.mjs"
+}

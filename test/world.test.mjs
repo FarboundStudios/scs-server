@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import dgram from 'node:dgram';
+import {createWorldTimeline} from '../server/system/world.mjs';
+import {validWorld,worldPacket} from '../server/shared/world.mjs';
+import {validState} from '../server/shared/protocol.mjs';
+import {vehiclePacket} from '../client/vehicles.mjs';
+import {createRelay} from '../server/system/server.mjs';
+import {createClient} from '../client/client.mjs';
+const wait=async check=>{const start=Date.now();while(!check()){if(Date.now()-start>4500)throw Error('timeout');await new Promise(r=>setTimeout(r,15));}};
+const controls={engine:true,parkingBrake:false,wipers:false,rpm:1000,gear:0,brake:0,throttle:0,steering:0};
+test('authoritative timeline survives restart, advances during pauses and gives common smooth rain',()=>{
+ let time=100000;const config={epoch:time,minutes:720,timeScale:19},clock=createWorldTimeline(config,()=>time);
+ assert.equal(clock().minutes,720);time+=60000;assert.equal(clock().minutes,739);
+ assert.deepEqual(createWorldTimeline(config,()=>time)(),clock());
+ time=config.epoch+1260000;assert.equal(clock().blend,.5);assert.equal(clock().weather,1);
+ time=config.epoch+1980000;assert.equal(clock().blend,.5);
+ assert.equal(createWorldTimeline({...config,weather:'rain'},()=>time)().blend,1);
+ assert.equal(createWorldTimeline({...config,weather:'clear'},()=>time)().blend,0);
+ for(const settings of [{timeScale:0},{timeScale:61},{minutes:NaN},{weather:'invalid'},{epoch:-1}])assert.throws(()=>createWorldTimeline(settings));
+});
+test('world and horn packets reject invalid input and preserve old controls offsets',()=>{
+ const w={minutes:720.3,timeScale:19,weather:1,blend:.5};
+ for(const value of [{...w,blend:NaN},{...w,minutes:Infinity},{...w,weather:2},{...w,timeScale:0}])assert.equal(validWorld(value),null);
+ const packet=worldPacket({connected:true,worldCompatible:true,world:w},3);
+ assert.equal(packet.toString('ascii',0,4),'HMW1');assert.equal(packet.length,40);assert.equal(packet.readDoubleLE(16),720.3);assert.equal(packet.readFloatLE(32),.5);
+ assert.equal(worldPacket({connected:false,worldCompatible:true,world:w},4).readUInt32LE(8),0);
+ const state={x:0,y:0,z:0,heading:0,pitch:0,roll:0,speed:0,paused:false,truck:{wheels:[],lights:0,controls,identity:{brand:'daf',model:'daf.xf',plate:'HeavyMP'},horn:{normal:true,air:true}}};
+ assert.deepEqual(validState(state).truck.horn,{normal:true,air:true});
+ assert.equal(validState({...state,truck:{...state.truck,horn:{normal:1,air:false}}}),null);
+ const p=vehiclePacket({connected:true,id:'00000000-0000-0000-0000-000000000001',players:[{id:'00000000-0000-0000-0000-000000000002',state:validState(state),ageMs:0}]},1);
+ assert.equal(p.readUInt32LE(448),3);assert.equal(p.length,472);
+});
+test('two real clients get the same world and relay horn press/release with stale/disconnect cleanup',async t=>{
+ const roomKey='c'.repeat(64),relay=await createRelay({host:'127.0.0.1',port:0,plaintext:true,roomKey,stateTtl:350,world:{weather:'rain'},log:()=>{}});t.after(()=>relay.close());
+ const receiver=dgram.createSocket('udp4');await new Promise(r=>receiver.bind(0,'127.0.0.1',r));t.after(()=>receiver.close());
+ const packets=[];receiver.on('message',p=>packets.push(p));
+ const common={host:'127.0.0.1',port:relay.address.port,plaintext:true,roomKey,telemetryPort:0,monitorPort:false};
+ const a=await createClient({...common,name:'WorldA',vehiclePort:receiver.address().port});t.after(()=>a.close());
+ const b=await createClient({...common,name:'WorldB'});let closed=false;t.after(()=>closed?undefined:b.close());
+ const input=dgram.createSocket('udp4');t.after(()=>input.close());
+ await wait(()=>a.status.world&&b.status.world);
+ const {minutes:minutesA,...weatherA}=a.status.world,{minutes:minutesB,...weatherB}=b.status.world;
+ assert.deepEqual(weatherA,weatherB);
+ // A relay tick can fall between the two initial world snapshots.
+ assert.ok(Math.abs(minutesA-minutesB)<0.2);
+ assert.equal(weatherA.blend,1);
+ const state={x:0,y:0,z:0,heading:0,pitch:0,roll:0,speed:0,paused:false,truck:{wheels:[],lights:0,controls,identity:{brand:'daf',model:'daf.xf',plate:'HeavyMP'},horn:{normal:true,air:false}}};
+ const send=(client=b)=>input.send(JSON.stringify({protocol:1,type:'telemetry',gameId:'eut2',state}),client.telemetryAddress.port,'127.0.0.1');
+ send(a);send();await wait(()=>packets.some(p=>p.toString('ascii',0,4)==='HMV3'&&p.length===472&&p.readUInt32LE(448)===1));
+ state.truck.horn.normal=false;send();await wait(()=>a.status.players.find(p=>p.name==='WorldB')?.state?.truck.horn.normal===false);
+ state.truck.horn.air=true;send();await wait(()=>a.status.players.find(p=>p.name==='WorldB')?.state?.truck.horn.air===true);
+ await wait(()=>!a.status.players.some(p=>p.name==='WorldB'));
+ assert.ok(packets.some(p=>p.toString('ascii',0,4)==='HMW1'&&p.readUInt32LE(8)===1));
+ await b.close();closed=true;await wait(()=>a.status.players.length===0);
+});

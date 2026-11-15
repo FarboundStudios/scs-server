@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "id": "hello",
+  "name": "Hello Example",
+  "version": "1.0.0",
+  "description": "Example chat command with the player's name and position.",
+  "entry": "index.mjs"
+}
