@@ -121,6 +121,6 @@ adapter and its command-line example.
 
 ## Screenshots
 
-![Console Panel](https://raw.githubusercontent.com/HeavyMPGame/scs-server/refs/heads/main/screenshots/console.png)
-![Mods Management](https://raw.githubusercontent.com/HeavyMPGame/scs-server/refs/heads/main/screenshots/mods_management.png)
-![Scripts Management](https://raw.githubusercontent.com/HeavyMPGame/scs-server/refs/heads/main/screenshots/scripts_management.png)
+![Console Panel](https://raw.githubusercontent.com/FarboundStudios/scs-server/refs/heads/main/screenshots/console.png)
+![Mods Management](https://raw.githubusercontent.com/FarboundStudios/scs-server/refs/heads/main/screenshots/mods_management.png)
+![Scripts Management](https://raw.githubusercontent.com/FarboundStudios/scs-server/refs/heads/main/screenshots/scripts_management.png)
