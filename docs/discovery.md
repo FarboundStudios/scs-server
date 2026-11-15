@@ -15,7 +15,7 @@ Example response while the game is stopped:
   "name": "HeavyMP Community Server",
   "status": "stopped",
   "online": false,
-  "serverVersion": "0.7.0",
+  "serverVersion": "1.0.0",
   "gameVersion": "1.62.3.3s",
   "protocol": 1,
   "playerCount": 0,

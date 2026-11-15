@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/heavymp-banner.svg" alt="HeavyMP" width="360"></p>
+
 # HeavyMP Server
 
 Self-hosted multiplayer server for Euro Truck Simulator 2. This source edition
@@ -103,8 +105,16 @@ endpoint reports stopped instances with HTTP 200.
 
 Run `npm test` for the server and discovery tests. The tests simulate Steam sign-in and exercise the public endpoints locally.
 
-Server and Manager source are under the [MIT licence](LICENSE). Bundled
-third-party files keep their own notices. The repository excludes game
+© 2026 [HeavyMP.com](https://heavymp.com), a project of [Farbound Studios](https://farboundstudios.com).
+Server and Manager source are under the [HeavyMP Open License](LICENSE): MIT,
+plus one condition. You may use, modify and redistribute it freely, but your
+server or product must say that it is **built with HeavyMP** (README, a place
+your users see, and your release announcements). See the license for the exact
+rules and the sentence to use:
+
+> Built with HeavyMP - https://heavymp.com
+
+Bundled third-party files keep their own notices. The repository excludes game
 archives, the native ETS2 plugin, the Windows launcher distribution and
 private instance data. The `launcher/` directory here contains the discovery
 adapter and its command-line example.

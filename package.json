@@ -1,8 +1,9 @@
 {
   "name": "heavymp-server",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "description": "Self-hosted HeavyMP game server and HVMP Server Manager",
-  "license": "MIT",
+  "author": "HeavyMP.com (Farbound Studios) <https://farboundstudios.com>",
+  "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "type": "module",
   "engines": {
