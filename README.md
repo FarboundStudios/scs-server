@@ -108,3 +108,9 @@ third-party files keep their own notices. The repository excludes game
 archives, the native ETS2 plugin, the Windows launcher distribution and
 private instance data. The `launcher/` directory here contains the discovery
 adapter and its command-line example.
+
+## Screenshots
+
+![Console Panel](https://raw.githubusercontent.com/HeavyMPGame/scs-server/refs/heads/main/screenshots/console.png)
+![Mods Management](https://raw.githubusercontent.com/HeavyMPGame/scs-server/refs/heads/main/screenshots/mods_management.png)
+![Scripts Management](https://raw.githubusercontent.com/HeavyMPGame/scs-server/refs/heads/main/screenshots/scripts_management.png)
