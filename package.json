@@ -1,6 +1,6 @@
 {
   "name": "heavymp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Self-hosted HeavyMP game server and HVMP Server Manager",
   "author": "HeavyMP.com (Farbound Studios) <https://farboundstudios.com>",
   "license": "SEE LICENSE IN LICENSE",

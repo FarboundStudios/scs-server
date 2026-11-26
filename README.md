@@ -4,8 +4,9 @@
 
 Self-hosted multiplayer server for Euro Truck Simulator 2. This source edition
 includes the **HVMP Server Manager**, the game relay, community scripts, addon
-distribution and the discovery adapter for a launcher. The game protocol is
-compatible with HeavyMP 0.7.0 for ETS2 1.62.3.3s.
+distribution and the discovery adapter for a launcher. Version 1.0.1 supports
+ETS2 1.62.3.3s and works with the
+[HeavyMP Launcher](https://github.com/FarboundStudios/launcher).
 
 ## Run a server
 
@@ -14,14 +15,54 @@ Use Node.js 22.13 or newer with npm. From the project directory:
 ```sh
 cp .env.example .env
 npm ci
+```
+
+On Windows, use `Copy-Item .env.example .env` for the first command. Then
+[declare the owner](#manager-accounts-and-roles) in `data/manager-access.json`
+and start the server:
+
+```sh
 npm start
 ```
 
-On Windows, use `Copy-Item .env.example .env` for the first command. Before you
-sign in, put your SteamID64 in `MANAGER_ADMIN_STEAM_IDS` in `.env`. Open
-`http://127.0.0.1:30007/manager/`, sign in with Steam and click **Start**.
-The Manager and the game share the same port. After a full process restart the
-game stays stopped until an operator starts it.
+Open `http://127.0.0.1:30007/manager/`, sign in with Steam and click **Start**.
+Use the exact address set in `MANAGER_PUBLIC_URL`. The Manager and the game
+share the same port. After a full process restart the game stays stopped until
+an operator starts it.
+
+## Manager accounts and roles
+
+No account can sign in by default. Administrators sign in through Steam, and
+the Manager checks its local lists.
+
+**Owners** are declared in `data/manager-access.json` (in `DATA_DIR`), with
+their SteamID64 (17 digits, up to 100 accounts). Create the file, then restart
+the server:
+
+```json
+{"schema":1,"admins":["76561198000000001"]}
+```
+
+Alternatively, set `MANAGER_ADMIN_STEAM_IDS` in the environment, as a comma
+separated list. Use one method only: when the variable is defined, **even
+empty**, the file is ignored. It is commented out in `.env.example`.
+
+**Other staff** are added by an owner on the **Access** page of the Manager.
+They are saved in `data/manager-users.json`; no restart is needed. Owners
+cannot be changed or removed from that page.
+
+| Role | Access | Start / stop |
+| --- | --- | --- |
+| Owner | Everything, including **Access** | Yes |
+| Administrator | Everything except **Access** | Yes |
+| Operator | Overview, players, map, performance, console, logs | Yes |
+| Moderator | Overview, players, map, performance, chat, moderation | No |
+| Viewer | Overview, players, map, performance | No |
+
+These roles apply to the Manager only. In-game staff is configured with client
+fingerprints (see below).
+
+## Hosting
 
 On a Node hosting panel, choose Node.js 22 or later, set the installation
 command to `npm ci` and the start command to `npm start`. Bind `HOST=0.0.0.0`
@@ -40,9 +81,18 @@ server.example.org {
 }
 ```
 
-Administrators sign in directly through Steam. The Manager checks its local
-allowlist and roles. After sign-in, it reads the display name and avatar
-from Steam Community. If the hosting provider cannot reach the public profile,
+**The HeavyMP Launcher needs HTTPS to join a server.** A plain
+`http://localhost` address is only listed and monitored. For a public server,
+set for example, then restart:
+
+```dotenv
+MANAGER_PUBLIC_URL=https://server.example.org
+PUBLIC_HOST=server.example.org
+PUBLIC_PORT=443
+```
+
+After sign-in, the Manager reads the display name and avatar from Steam
+Community. If the hosting provider cannot reach the public profile,
 the Manager logs the failure and uses the saved display details if available.
 To set a fallback, create `data/manager-profiles.json` and restart the Manager.
 Use the following format, with your SteamID64 and display name. You can add an
