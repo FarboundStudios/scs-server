@@ -12,7 +12,7 @@ export function validCargoParams(s){
 }
 export function validAppearance(a,trailer=false){
  const dolly=trailer&&Array.isArray(a?.accessories)&&a.accessories.some(x=>typeof x?.path==='string'&&/\/dolly[^/]*\/data\.sii$|\/scs\.dolly[^/]*\/data\.sii$|\/chassis\/dolly[^/]*\.sii$/.test(x.path));
- if(!a||!text(a.plate)||!Array.isArray(a.accessories)||a.accessories.length<(dolly?2:7)||a.accessories.length>256)return null;
+ if(!a||!text(a.plate)||!Array.isArray(a.accessories)||a.accessories.length<(dolly?2:trailer?3:7)||a.accessories.length>256)return null;
  const accessories=[];
  const coachBodies=a.accessories.filter(x=>typeof x?.path==='string'&&/^\/def\/vehicle\/bus\/[^/]+\/data\.sii$/.test(x.path));
  if(coachBodies.length>1||trailer&&coachBodies.length)return null;
@@ -39,9 +39,11 @@ export function validAppearance(a,trailer=false){
   accessories.push(item);
  }
  // Refuse incomplete tractors before native model construction.
- for(const tail of dolly?['/data.sii','/chassis/']:trailer?['/data.sii','/chassis/','/body/','/paint_job/']:['/data.sii','/chassis/','/cabin/','/interior/','/engine/','/transmission/','/paint_job/'])
+ // Trailers supplied by the game for freight jobs (def/vehicle/trailer/...) do not use the data.sii, chassis/, body/
+ // and paint_job/ layout of owned trailers, and some have no paint job at all.
+ for(const tail of dolly?['/data.sii','/chassis/']:trailer?[]:['/data.sii','/chassis/','/cabin/','/interior/','/engine/','/transmission/','/paint_job/'])
   if(!accessories.some(x=>coachRoot?x.path.startsWith(coachRoot+tail.slice(1)):x.path.includes(tail)))return null;
- if(dolly?accessories.filter(x=>x.kind===4).length>1:accessories.filter(x=>x.kind===4).length!==1)return null;
+ if(trailer?accessories.filter(x=>x.kind===4).length>1:accessories.filter(x=>x.kind===4).length!==1)return null;
  if(accessories.filter(x=>x.kind===7).length>1)return null;
  const result={plate:a.plate,accessories};
  if(a.children!==undefined){

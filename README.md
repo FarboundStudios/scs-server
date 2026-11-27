@@ -4,9 +4,13 @@
 
 Self-hosted multiplayer server for Euro Truck Simulator 2. This source edition
 includes the **HVMP Server Manager**, the game relay, community scripts, addon
-distribution and the discovery adapter for a launcher. Version 1.0.1 supports
+distribution and the discovery adapter for a launcher. Version 1.0.2 supports
 ETS2 1.62.3.3s and works with the
 [HeavyMP Launcher](https://github.com/FarboundStudios/launcher).
+
+**1.0.2** fixes freight job trailers: trailers supplied by the game (lowbeds,
+tankers, curtain siders and other `def/vehicle/trailer/` trailers) and their
+loads are now shared with other players. Players need launcher 1.0.3.
 
 ## Run a server
 
