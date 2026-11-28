@@ -1,18 +1,27 @@
 import { lstat, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Worker } from 'node:worker_threads';
 const workerUrl = new URL('./module-worker.mjs', import.meta.url);
 import { readJson, safeDirectory } from './manager/storage.mjs';
 
 const moduleId = /^[a-z][a-z0-9-]{1,31}$/;
 const serviceIds = new Set(['phone', 'classic-chat']);
+const bundledIds = new Set([...serviceIds, 'hello', 'missions']);
+export const isBundledModule = id => bundledIds.has(id);
+const bundledRoot = fileURLToPath(new URL('../../scripts/', import.meta.url));
 export const maxCustomModules = 12;
 const maxModuleDirectories = 64;
 const settingsPath = directory => join(directory, 'manager', 'modules.json');
 
 
-export async function readModules(directory, root = resolve('scripts')) {
+export function readInstanceModules(directory, env) {
+  return env.INSTANCE_SCRIPTS_DIR ?
+    readModules(directory, resolve(env.INSTANCE_SCRIPTS_DIR), {includeBundled: true}) :
+    readModules(directory);
+}
+
+export async function readModules(directory, root = resolve('scripts'), {includeBundled = false} = {}) {
   await safeDirectory(root);
   const defaults = { schema: 1, overrides: {} };
   const settings = directory ? await readJson(settingsPath(directory), defaults, 16384) : defaults;
@@ -20,15 +29,23 @@ export async function readModules(directory, root = resolve('scripts')) {
   if (settings?.schema !== 1 || !overrides || typeof overrides !== 'object' ||
       Array.isArray(overrides) || Object.entries(overrides).some(([id, value]) =>
         !moduleId.test(id) || typeof value !== 'boolean')) throw Error('invalid_module_settings');
-  const folders = await readdir(root, { withFileTypes: true });
   const modules = [];
-  const candidates = folders.filter(folder => folder.isDirectory() && moduleId.test(folder.name))
-    .sort((a, b) => Number(serviceIds.has(b.name)) - Number(serviceIds.has(a.name)) || a.name.localeCompare(b.name));
-  for (const folder of candidates.slice(0, maxModuleDirectories)) {
-    const id = folder.name;
+  const folders = await readdir(root, { withFileTypes: true });
+  const sources = new Map();
+  if (includeBundled) {
+    for (const folder of await readdir(bundledRoot, {withFileTypes: true})) {
+      if (folder.isDirectory() && bundledIds.has(folder.name)) sources.set(folder.name, bundledRoot);
+    }
+  }
+  for (const folder of folders) {
+    if (folder.isDirectory() && moduleId.test(folder.name) && !sources.has(folder.name)) sources.set(folder.name, root);
+  }
+  const candidates = [...sources].sort(([a], [b]) =>
+    Number(serviceIds.has(b)) - Number(serviceIds.has(a)) || a.localeCompare(b));
+  for (const [id, moduleRoot] of candidates.slice(0, maxModuleDirectories)) {
     const service = serviceIds.has(id);
     try {
-      const manifest = await readJson(join(root, id, 'manifest.json'), null, 4096);
+      const manifest = await readJson(join(moduleRoot, id, 'manifest.json'), null, 4096);
       if (manifest === null && !service) continue;
       if (!manifest || manifest.schema !== 1 || manifest.id !== id ||
           typeof manifest.name !== 'string' || !manifest.name.trim() || manifest.name.length > 64 ||
@@ -38,7 +55,7 @@ export async function readModules(directory, root = resolve('scripts')) {
       if (typeof manifest.entry !== 'string' || !/^[a-z0-9_-]+\.m?js$/.test(manifest.entry)) {
         throw Error('invalid_module_entry');
       }
-      const entry = join(root, id, manifest.entry);
+      const entry = join(moduleRoot, id, manifest.entry);
       const file = await lstat(entry);
       if (!file.isFile() || file.isSymbolicLink() || file.size > 256 * 1024) {
         throw Error('invalid_module_entry');

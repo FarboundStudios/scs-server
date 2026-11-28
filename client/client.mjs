@@ -35,6 +35,7 @@ import {createPhoneTransport} from './phone-network.mjs';
 export async function createClient(config) {
   if (!cleanName(config.name) || typeof config.host !== 'string' || !config.host.length) throw new Error('Invalid name or host');
   if (config.plaintext && !isLoopback(config.host)) throw new Error('Le mode local sans TLS ne peut pas joindre un VPS');
+  if (config.localWebsocket && !(isLoopback(config.host) || config.host === 'localhost')) throw new Error('Plain WebSocket is limited to localhost.');
   const serverPort = port(config.port, config.plaintext ? 4443 : 443);
   const telemetryPort = port(config.telemetryPort, 34061, true);
   const identity=await playerIdentity(config.identityDirectory,config.name);
@@ -74,8 +75,19 @@ export async function createClient(config) {
   const localChat=text=>{status.chat.push({id:0,time:Date.now(),name:'HeavyMP',text,system:true});trimChat();publish();};
   // Codes qui arrêtent les tentatives automatiques : ceux du protocole + les refus du module partagé (banni, expulsé, Steam non lié…).
   const fatalCodes = new Set(['access_denied', 'game_version', 'name', 'name_taken', 'protocol', 'room_full', 'identity_in_use', ...FATAL_REFUSALS]);
+  let admissionRetries=config.retryPreviousAdmission===true?3:0;
   // Refus (du serveur de jeu ou du site au moment d'obtenir le ticket) : message clair, bannissement détaillé, arrêt si fatal.
-  const refuse=msg=>{status.error=describeRefusal(msg);status.ban=msg.code==='banned'?{scope:msg.scope??'game',until:msg.until??null,reason:msg.reason??null}:null;if(fatalCodes.has(msg.code))stopped=true;socket?.destroy();publish();};
+  const refuse=msg=>{
+    if(!welcomed&&admissionRetries>0&&['name_taken','identity_in_use'].includes(msg.code)){
+      admissionRetries--;
+      socket?.destroy();
+      return;
+    }
+    status.error=describeRefusal(msg);
+    status.ban=msg.code==='banned'?{scope:msg.scope??'game',until:msg.until??null,reason:msg.reason??null}:null;
+    if(fatalCodes.has(msg.code))stopped=true;
+    socket?.destroy();publish();
+  };
   const publish = () => {
     status.traffic=traffic.diagnostics();
     const now=performance.now(),elapsed=now-rateAt;
@@ -190,12 +202,13 @@ export async function createClient(config) {
       if (stopped || connection !== socket || connection.destroyed) return;
       lastServer = performance.now();
       send(socket, { type: 'join', protocol: PROTOCOL, gameVersion: GAME_VERSION, name: config.name,
-        room: canonicalRoom(config.room),mapRevision:config.mapRevision??null,...(standaloneMap?{mapModule:config.mapModule}:{}), identity, capabilities:{traffic:6,noCollisionZones:1,missions:1,phone:1,phoneTestCall:1,chat:1,chatChannels:1,deltaSnapshots:1,networkMetrics:1,configurationChunks:1,vehicleConfiguration:1,trailerConfiguration:1,trailerCargoConfiguration:1,trailerChainConfiguration:1,worldSynchronization:1,hornSynchronization:1} });
+        room: canonicalRoom(config.room),...(config.optionalModsActive===true?{optionalModsActive:true,...(config.optionalOrderRevision?{optionalOrderRevision:config.optionalOrderRevision}:{})}:{}),mapRevision:config.mapRevision??null,...(standaloneMap?{mapModule:config.mapModule}:{}), identity, capabilities:{traffic:6,noCollisionZones:1,missions:1,phone:1,phoneTestCall:1,chat:1,chatChannels:1,deltaSnapshots:1,networkMetrics:1,configurationChunks:1,vehicleConfiguration:1,trailerConfiguration:1,trailerCargoConfiguration:1,trailerChainConfiguration:1,worldSynchronization:1,hornSynchronization:1} });
     };
     if (config.plaintext) socket = net.connect({ host: config.host, port: serverPort }, onConnect);
     else {
       const hostname = config.host.includes(':') ? `[${config.host}]` : config.host;
-      const ws = new WebSocket(`wss://${hostname}:${serverPort}${WEBSOCKET_PATH}`, {
+      const scheme = config.localWebsocket ? 'ws' : 'wss';
+      const ws = new WebSocket(`${scheme}://${hostname}:${serverPort}${WEBSOCKET_PATH}`, {
         rejectUnauthorized: true, minVersion: 'TLSv1.2', handshakeTimeout: 10000,
         maxPayload: 262144, perMessageDeflate: false, followRedirects: false
       });
@@ -220,6 +233,7 @@ export async function createClient(config) {
       if(msg.type==='network_probe'&&welcomed&&Number.isSafeInteger(msg.token)){send(socket,{type:'network_probe_ack',token:msg.token});return;}
       if(msg.type==='vehicle_access'&&welcomed){status.staffVehicles=msg.staff===true;status.staffVehiclesAt=performance.now();return;}
       if (msg.type === 'welcome' && msg.protocol === PROTOCOL && typeof msg.id === 'string') {
+        admissionRetries=0;
         traffic.capabilities(msg.capabilities);phoneComms.disconnect();dispatchTransport.disconnect();dispatchTransport.capabilities(msg.capabilities);welcomed = true; delay = 1000;
         const moduleList=msg.modules;
         phoneEnabled=moduleList?.schema===1 ? moduleList.phone===true : msg.capabilities?.phone!==0&&msg.capabilities?.phone!==false;
@@ -396,10 +410,17 @@ export async function createClient(config) {
     }
     mapReady=next;status.mapReady=mapReady;publish();
   }, telemetryAddress: udp.address(), monitorAddress: monitor?.address(), async close() {
+    stopped = true; clearTimeout(retryTimer); clearInterval(ticker); clearInterval(pinger);
+    const closing=socket;
+    const disconnected=closing&&!closing.destroyed?new Promise(resolve=>{
+      const deadline=setTimeout(()=>closing.destroy(),1200);
+      closing.once('close',()=>{clearTimeout(deadline);resolve();});
+      closing.end();
+    }):null;
     traffic.disconnect();nativeDispatch.close();await dispatchService.close();
-    stopped = true; clearTimeout(retryTimer); clearInterval(ticker); clearInterval(pinger); socket?.destroy();
     for (const stream of streams) stream.end();
     if (monitor) await new Promise(resolve => monitor.close(resolve));
     await new Promise(resolve => udp.close(resolve));
+    await disconnected;
   } };
 }

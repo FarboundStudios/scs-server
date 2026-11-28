@@ -60,6 +60,26 @@ test('public join routing, exact version and server-owned identity', async t => 
   assert.equal(response.type,'welcome');assert.notEqual(response.id,'fake');assert.equal(response.steamId,null);
 });
 
+test('an optional-mod handoff retries while the preceding name is still connected', async () => {
+  const relay=await createRelay({host:'127.0.0.1',port:0,plaintext:true,allowOptionalMods:true,log:()=>{}});
+  const common={host:'127.0.0.1',port:relay.address.port,plaintext:true,name:'Handoff',telemetryPort:0,monitorPort:false};
+  let old,next;
+  try{
+    old=await createClient(common);
+    await waitFor(()=>old.status.connected);
+    next=await createClient({...common,optionalModsActive:true,retryPreviousAdmission:true});
+    // Keep the old connection reserved for the first admission attempt.
+    await pause(250);
+    assert.equal(next.status.connected,false);
+    assert.equal(next.status.error??null,null);
+    await old.close();old=null;
+    await waitFor(()=>next.status.connected);
+    assert.equal(relay.sessions.size,1);
+  }finally{
+    await next?.close();await old?.close();await relay.close();
+  }
+});
+
 test('local staff allowlist checks the actual client token', async t=>{
   const token=key(),fingerprint=identityHash(token);
   const relay=await createRelay({host:'127.0.0.1',port:0,plaintext:true,localStaff:[fingerprint],staffOnly:true,log:()=>{}});

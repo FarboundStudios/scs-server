@@ -3,7 +3,7 @@ import {normalizeAnnouncement} from './announcements.mjs';
 
 // The game uses these packets for native announcements and system replies,
 // including on servers with both player-facing chat modules removed.
-export function createServerMessages({sessions,onMessage}){
+export function createServerMessages({sessions,onMessage,stateTtl=1500}){
  let sequence=0;
  const message=(name,text,system,channel,rank,company,senderId)=>({
   id:(++sequence)>>>0,time:Date.now(),name,text,system,channel,
@@ -41,7 +41,9 @@ export function createServerMessages({sessions,onMessage}){
   if(!text)return {ok:false,recipients:0};
   const recipients=[...sessions.values()].filter(s=>s.supportsChat);
   broadcast(recipients,'HeavyMP','[Annonce] '+text,true,'system');
-  return {ok:true,recipients:recipients.length};
+  const now=performance.now();
+  const withGameTelemetry=recipients.filter(s=>s.lastState&&now-s.stateAt<=stateTtl).length;
+  return {ok:true,recipients:recipients.length,withGameTelemetry};
  }
  function handle(s,msg){
   if(msg.type==='teleport_result'){

@@ -1,4 +1,5 @@
 import { createInterface } from 'node:readline';
+import { announcementSummary } from './announcements.mjs';
 
 /** Local stdin only: no remote endpoint and no synthetic staff/player session. */
 export function createServerConsole(relay, { input = process.stdin, output = process.stdout } = {}) {
@@ -22,7 +23,7 @@ export function createServerConsole(relay, { input = process.stdin, output = pro
     try {
       const result = relay.announce(match[2] ?? '');
       if (!result.ok) write('Usage: announce <message> (1 to 240 characters, without control characters).');
-      else write(`Announcement sent to ${result.recipients} player(s).`);
+      else write(announcementSummary(result));
     } catch (error) {
       write('Announcement failed: ' + String(error?.message ?? error).replace(/[\r\n]/g, ' ').slice(0, 160));
     }

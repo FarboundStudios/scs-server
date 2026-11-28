@@ -13,7 +13,7 @@ function modal(title,body){
 }
 const readableValue=v=>v==='true'?'Enabled':v==='false'?'Disabled':String(v);
 function previewMarkup(plan){return `<div class="guide-impact"><strong>${text('What will happen')}</strong><ul><li>${plan.connectedPlayers===null?text('Connected player count is not available.'):text('{count} players currently connected.',{count:plan.connectedPlayers})}</li><li>${text('Saving keeps the game running. A later restart disconnects connected players.')}</li><li>${plan.changes.length?text('A private configuration backup is created before saving.'):text('No game setting needs to change.')}</li></ul></div>${plan.blocked.length?`<p class="settings-message error">${text(plan.blocked.some(c=>c.reason==='changed_since')?'Some settings changed after this profile. Automatic undo is blocked to preserve those edits.':'Some values are controlled by your hosting provider. This profile cannot be applied.')}</p>`:''}${plan.changes.length?`<div class="table-wrap"><table><thead><tr><th>${text('Setting')}</th><th>${text('Current')}</th><th>${text('Proposed')}</th></tr></thead><tbody>${plan.changes.map(c=>`<tr><td data-label="${text('Setting')}">${text(c.label)}</td><td data-label="${text('Current')}">${esc(readableValue(c.before))}</td><td data-label="${text('Proposed')}">${esc(readableValue(c.after))}</td></tr>`).join('')}</tbody></table></div>`:`<p class="guide-no-changes">${text('Your existing configuration will be preserved.')}</p>`}`;}
-export function createGuide({api,getStatus,getLogs,getUser,getPage,rerender,notice,openSetting,onStatus=()=>{},pages}){
+export function createGuide({api,getStatus,getLogs,getUser,getPage,rerender,notice,openSetting,onStatus=()=>{},pages,signal,autoSetup=true}){
  let data=null,initialized=false,clockOffset=0,loading=false,lastFetch=0,lastFailure=false,dialogOpen=false,drafts=null;
  const guide={get data(){return data;},get advanced(){return data?.preferences?.advanced??false;},get drafts(){return drafts;},get intents(){return SEARCH_INTENTS;}};
  const changed=()=>{document.documentElement.dataset.viewMode=guide.advanced?'advanced':'simple';if(!document.querySelector('dialog[open]'))rerender();};
@@ -24,8 +24,8 @@ export function createGuide({api,getStatus,getLogs,getUser,getPage,rerender,noti
  guide.visit=page=>drafts?.visit(page);
  guide.init=async()=>{
   const status=getStatus(),user=getUser();let storage;try{storage=window.localStorage;}catch{storage={getItem(){return null;},setItem(){},removeItem(){}};}
-  initialized=false;data=null;drafts=new LocalDrafts(location.origin+':'+(status?.meta?.serverId??'server')+':'+user.steamId,storage);await refresh();
-  if(data){changed();initialized=true;if(!data.setup.completedAt&&!data.setup.startedAt)await setup();}
+ initialized=false;data=null;drafts=new LocalDrafts(location.origin+':'+(status?.instance?.id??status?.meta?.serverId??'server')+':'+user.steamId,storage);await refresh();
+  if(data){changed();initialized=true;if(autoSetup&&!data.setup.completedAt&&!data.setup.startedAt)await setup();}
  };
  guide.preferencesChanged=()=>changed();
  guide.setNavigation=async values=>post('preferences',values);
@@ -116,6 +116,6 @@ export function createGuide({api,getStatus,getLogs,getUser,getPage,rerender,noti
    else if(action==='workflow')await startWorkflow();else if(action==='workflow-step')await workflowStep();else if(action==='workflow-check')await workflowStep(true);else if(action==='cancel-workflow'){if(await confirmAction('Close this resource guide?','Completed operations are kept. No game setting or resource is reverted.',false))await post('workflow',{action:'cancel'});changed();}
    else if(action==='tour')await tour();else if(action==='report'){const context=await api('diagnostics');download('hvmp-community-diagnostic.json',JSON.stringify({at:new Date().toISOString(),checks:adviceModel({status:getStatus(),context:data.context,logs:getLogs(),setup:data.setup,now:Date.now()+clockOffset}),diagnostics:context},null,2),'application/json');}
   }catch(error){if(['guidance_conflict','guidance_preview_changed','onboarding_closed'].includes(error.message))await refresh(true);notice(formatText(errors[error.message]??error.message));}finally{if(b.isConnected)b.disabled=false;}
- });
+ },{signal});
  return guide;
 }

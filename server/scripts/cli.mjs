@@ -2,7 +2,7 @@ import {loadEnvFile} from 'node:process';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {readControl} from '../system/console-control.mjs';
-import {normalizeAnnouncement} from '../system/announcements.mjs';
+import {announcementSummary,normalizeAnnouncement} from '../system/announcements.mjs';
 
 export async function runConsoleCommand(args,{directory=process.env.DATA_DIR??'./data',write=console.log}={}){
  const cli='npm run console --';
@@ -16,7 +16,7 @@ export async function runConsoleCommand(args,{directory=process.env.DATA_DIR??'.
   const response=await fetch(`http://127.0.0.1:${control.port}/${debug?'missions-debug':fake?'fake-call':'announce'}`,{method:'POST',redirect:'error',headers:{authorization:'Bearer '+control.token,'content-type':'application/json'},body:JSON.stringify(fake||debug?{target}:{message:text}),signal:AbortSignal.timeout(5000)});
   const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error??'Server unavailable');
   if(debug){write(JSON.stringify(result.diagnostic,null,2));return 0;}
-  write(fake?`Test call sent to ${result.player} (${result.number}).`:`Announcement sent to ${result.recipients} player(s).`);return 0;
+  write(fake?`Test call sent to ${result.player} (${result.number}).`:announcementSummary(result));return 0;
  }catch(error){write('Command failed. Check that the server is running and uses the same DATA_DIR and container. '+(error.code==='ENOENT'?'Local console not found.':String(error.message).replace(/[\r\n]/g,' ').slice(0,140)));return 1;}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){

@@ -6,14 +6,14 @@ import { createServerLogger,cleanLog } from './logger.mjs';
 import {loadManagerRules} from './manager/moderation.mjs';
 import {join,resolve} from 'node:path';
 import {access} from 'node:fs/promises';
-import {readModules, createModulesRuntime} from './modules.mjs';
+import {readInstanceModules, createModulesRuntime} from './modules.mjs';
 
 let log, modules;
 try {
   log=createServerLogger({env:process.env});const started=performance.now();
   log.begin(SERVER_VERSION);
   try{await access(join(resolve(process.env.DATA_DIR??'./data'),'manager/backups/restore-pending.json'));throw Error('A data restore needs Manager recovery before starting the game.');}catch(e){if(e.code!=='ENOENT')throw e;}
-  const scriptConfig=await readModules(resolve(process.env.DATA_DIR ?? './data'));
+  const scriptConfig=await readInstanceModules(resolve(process.env.DATA_DIR ?? './data'),process.env);
   modules = createModulesRuntime(scriptConfig, log.warn);
   const options=await prepareServer(process.env,log.startup,{
     onAddonScan:()=>log.stage('ADDONS','Verifying archives…'),

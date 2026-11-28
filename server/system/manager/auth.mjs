@@ -6,9 +6,9 @@ const random=()=>randomBytes(32).toString('hex');
 export function cookies(header=''){const result={};for(const part of header.split(';')){const at=part.indexOf('=');if(at>0)result[part.slice(0,at).trim()]=part.slice(at+1).trim();}return result;}
 export function sameToken(a,b){if(typeof a!=='string'||typeof b!=='string'||a.length>128||b.length>128)return false;const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);}
 export class ManagerAuth {
- constructor({admins,members,getOrigin,fetchImpl=fetch,now=Date.now,profiles=new Map(),profileLog}){Object.assign(this,{admins,members,getOrigin,fetchImpl,now,profiles,profileLog});this.pending=new Map();this.sessions=new Map();this.nonces=new Map();this.cookieName='hvmp_manager';}
+ constructor({admins,members,getOrigin,fetchImpl=fetch,now=Date.now,profiles=new Map(),profileLog,cookieScope=''}){Object.assign(this,{admins,members,getOrigin,fetchImpl,now,profiles,profileLog,cookieScope});this.pending=new Map();this.sessions=new Map();this.nonces=new Map();this.cookieName='hvmp_manager';}
  roleFor(steamId){return this.members?this.members.roleFor(steamId):this.admins.has(steamId)?'owner':null;}
- cookieKey(name){return this.getOrigin()?.startsWith('https:')?'__Host-'+name:name;}
+ cookieKey(name){return (this.getOrigin()?.startsWith('https:')?'__Host-':'')+name+(this.cookieScope?'-'+this.cookieScope:'');}
  cookie(name,value,maxAge){return `${this.cookieKey(name)}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${this.getOrigin()?.startsWith('https:')?'; Secure':''}`;}
  prune(){const t=this.now();for(const [k,v]of this.pending)if(v.expires<t)this.pending.delete(k);for(const [k,v]of this.sessions)if(v.expires<t||t-v.lastAt>1800000)this.sessions.delete(k);for(const [k,v]of this.nonces)if(v<t)this.nonces.delete(k);}
  begin(){this.prune();if(!this.getOrigin())throw Error('manager_origin_unavailable');if(!this.admins.size)throw Error('manager_admins_missing');if(this.pending.size>=256)throw Error('auth_busy');

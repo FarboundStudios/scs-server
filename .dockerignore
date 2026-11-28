@@ -1,0 +1,14 @@
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!assets/
+!assets/**
+!scripts/
+!scripts/**
+!server/
+!server/**
+**/.env
+**/.env.*
+**/node_modules
+**/*.hvmpbackup

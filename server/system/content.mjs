@@ -2,17 +2,18 @@ import {readFile,stat,realpath,lstat,readdir,mkdir,writeFile,rename,unlink} from
 import {createReadStream} from 'node:fs';
 import {randomUUID,createHash} from 'node:crypto';
 import {dirname,join,resolve} from 'node:path';
-import {validMapManifest,mapRevision,validMapModule} from '../shared/content.mjs';
+import {validMapManifest,mapRevision,validMapModule,MAX_ADDON_BYTES} from '../shared/content.mjs';
 import {GAME_VERSION} from '../shared/protocol.mjs';
+import {acceptsOptionalAllowlist} from '../shared/discovery.mjs';
 import {addonName,publicAddonName,addonOrder,inspectAddons} from './addon-inspection.mjs';
 // Cache is private server bookkeeping; only validMapManifest's whitelist is public.
-export async function loadAddonContent(folder,{indexPath,mapModule,reportPath=indexPath?join(dirname(resolve(indexPath)),'addons-report.json'):null,log=()=>{},onHash=()=>{},onReport=()=>{}}={}){
+export async function loadAddonContent(folder,{indexPath,mapModule,dealerBranding=null,reportPath=indexPath?join(dirname(resolve(indexPath)),'addons-report.json'):null,log=()=>{},onHash=()=>{},onReport=()=>{},onOptional=()=>{}}={}){
  const directory=resolve(folder);let entries=[];
  try{entries=await readdir(directory,{withFileTypes:true});}catch(e){if(e.code!=='ENOENT')throw e;}
  const discovered=entries.filter(e=>/\.(?:scs|zip)$/i.test(e.name)).map(e=>e.name).sort();
  if(discovered.length>256)throw Error('addons contient plus de 256 archives SCS/ZIP.');
  for(const name of discovered)if(!addonName(name))throw Error('Invalid add-on archive name: '+name);
- const {selected:names,disabled}=await addonOrder(directory,discovered,log);
+ const {selected:names,disabled,optional}=await addonOrder(directory,discovered,log);
  let cached=null,metadata={schema:1,id:'heavymap',version:'0.7.0',gameVersion:GAME_VERSION,module:'europe',requiredDlcs:[]};
  if(indexPath)try{
   const info=await lstat(indexPath);if(!info.isFile()||info.isSymbolicLink()||info.size>262144)throw Error('Invalid add-on index.');
@@ -34,7 +35,7 @@ export async function loadAddonContent(folder,{indexPath,mapModule,reportPath=in
  for(const sourceName of names){
   const name=publicAddonName(sourceName);if(publicNames.has(name.toLowerCase()))throw Error('Conflicting public add-on names: '+name);publicNames.add(name.toLowerCase());
   const path=join(directory,sourceName),info=await lstat(path);
-  if(!info.isFile()||info.isSymbolicLink()||info.size<22||info.size>8*1024**3)throw Error('Invalid add-on archive: '+sourceName);
+  if(!info.isFile()||info.isSymbolicLink()||info.size<22||info.size>MAX_ADDON_BYTES)throw Error('Invalid add-on archive: '+sourceName);
   const fingerprint=[info.dev,info.ino,info.size,info.mtimeMs,info.ctimeMs].join(':');
   const old=cached?.files?.find(f=>f.name===name);let sha256;
   if(old&&old.size===info.size&&(cached?._cache?.[name]===fingerprint||reportMatchesIndex&&cachedReport._fingerprints?.[name]===fingerprint))sha256=old.sha256;
@@ -42,8 +43,23 @@ export async function loadAddonContent(folder,{indexPath,mapModule,reportPath=in
   files.push({name,size:info.size,sha256});cache[name]=fingerprint;sources[name]=sourceName;inspectionFiles.push({name,sourceName,path,sha256});fingerprints.set(path,fingerprint);
  }
  if(!files.length&&metadata.module!=='europe')throw Error('A standalone map requires at least one enabled add-on.');
+ let dealerAnchor=null;
+ if(dealerBranding){
+  const {name,size,sha256}=dealerBranding;
+  if(publicNames.has(name.toLowerCase())||files.length===256)log('Dealer branding skipped: conflicting addon name or archive limit.');
+  else{
+   files.push({name,size,sha256});
+   dealerAnchor=name;
+  }
+ }
+ onOptional(optional.map(slot=>{
+  const after=names.includes(slot.after)?slot.after:null;
+  // The generated menu is hidden in the Manager. Keep the visible last slot last.
+  if(dealerAnchor&&after===(names.at(-1)??null))return {...slot,after:dealerAnchor};
+  return {...slot,after:after===null?null:publicAddonName(after)};
+ }));
  const manifest=files.length?validMapManifest({...metadata,gameVersion:GAME_VERSION,files}):{schema:1,id:metadata.id,version:metadata.version,gameVersion:GAME_VERSION,module:'europe',requiredDlcs:metadata.requiredDlcs??[],files:[]};
- const content=files.length?await materialize(structuredClone(manifest),directory,false,sources):null;
+ const content=files.length?await materialize(structuredClone(manifest),directory,false,sources,dealerBranding):null;
  let report=Array.isArray(cachedReport?.mapModules)&&cachedReport.revision===(content?.revision??null)&&JSON.stringify(cachedReport.disabled)===JSON.stringify(disabled)?cachedReport:null;
  let changedReport=!report;
  if(!report)report={...await inspectAddons(inspectionFiles,{disabled}),revision:content?.revision??null};
@@ -71,16 +87,26 @@ export async function loadMapContent(file){
  return materialize(validMapManifest(raw),dirname(resolve(file)),true);
 }
 async function atomicJson(path,value){await mkdir(dirname(resolve(path)),{recursive:true});const tmp=path+'.'+randomUUID()+'.tmp';try{await writeFile(tmp,JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});await rename(tmp,path);}finally{await unlink(tmp).catch(e=>{if(e.code!=='ENOENT')throw e;});}}
-async function materialize(manifest,folder,verify,sources={}){
- const directory=await realpath(folder),assets=new Map(),revision=mapRevision(manifest);
- for(const f of manifest.files){const path=join(directory,sources[f.name]??f.name);if((await lstat(path)).isSymbolicLink()||dirname(await realpath(path))!==directory||(await stat(path)).size!==f.size)throw Error('Missing map file, symlink or incorrect file size: '+f.name);if(verify){const hash=createHash('sha256');for await(const b of createReadStream(path))hash.update(b);if(hash.digest('hex')!==f.sha256)throw Error('Checksum mismatch: '+f.name);}
+async function materialize(manifest,folder,verify,sources={},dealerBranding=null){
+ let directory;
+ const assets=new Map(),revision=mapRevision(manifest);
+ for(const f of manifest.files){
+  if(f.name===dealerBranding?.name&&f.sha256===dealerBranding.sha256&&!Object.hasOwn(sources,f.name)){
+   f.url='/content/files/'+f.sha256+'/'+f.name;
+   assets.set(f.url,dealerBranding);
+   continue;
+  }
+  directory??=await realpath(folder);
+  const path=join(directory,sources[f.name]??f.name);if((await lstat(path)).isSymbolicLink()||dirname(await realpath(path))!==directory||(await stat(path)).size!==f.size)throw Error('Missing map file, symlink or incorrect file size: '+f.name);if(verify){const hash=createHash('sha256');for await(const b of createReadStream(path))hash.update(b);if(hash.digest('hex')!==f.sha256)throw Error('Checksum mismatch: '+f.name);}
   if(f.url){const u=new URL(f.url);if(u.protocol!=='https:'||u.username||u.password||u.hash)throw Error('Invalid CDN URL.');}else{f.url='/content/files/'+f.sha256+'/'+f.name;assets.set(f.url,{...f,path});}}
  return {manifest,revision,assets};
 }
-export function serveMapContent(content,request,response,url){
- if(url.pathname==='/content/manifest'&&request.method==='GET'){response.writeHead(200,{'Content-Type':'application/json; charset=utf-8'});response.end(JSON.stringify({schema:1,manifest:content?.manifest??null,revision:content?.revision??null}));return true;}
+export function serveMapContent(content,request,response,url,optionalOrder=null){
+ if(url.pathname==='/content/manifest'&&request.method==='GET'){response.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});response.end(JSON.stringify({schema:1,manifest:content?.manifest??null,revision:content?.revision??null,...(optionalOrder&&acceptsOptionalAllowlist(request.headers)?{optionalOrder}:{})}));return true;}
  const asset=content?.assets.get(url.pathname);if(!asset||!['GET','HEAD'].includes(request.method))return false;
  let start=0,end=asset.size-1,status=200;const range=request.headers.range;if(range){const m=/^bytes=(\d+)-(\d*)$/.exec(range);if(!m||(start=Number(m[1]))>=asset.size||!Number.isSafeInteger(start)||(m[2]&&(end=Number(m[2]))<start)||end>=asset.size){response.writeHead(416,{'Content-Range':'bytes */'+asset.size});response.end();return true;}status=206;}
  response.writeHead(status,{'Content-Type':'application/octet-stream','Content-Length':end-start+1,'Accept-Ranges':'bytes','Cache-Control':'public, max-age=31536000, immutable',ETag:'"'+asset.sha256+'"',...(status===206?{'Content-Range':'bytes '+start+'-'+end+'/'+asset.size}:{})});
- if(request.method==='HEAD'){response.end();return true;}const stream=createReadStream(asset.path,{start,end});response.once('close',()=>stream.destroy());stream.on('error',()=>response.destroy());stream.pipe(response);return true;
+ if(request.method==='HEAD'){response.end();return true;}
+ if(asset.bytes){response.end(asset.bytes.subarray(start,end+1));return true;}
+ const stream=createReadStream(asset.path,{start,end});response.once('close',()=>stream.destroy());stream.on('error',()=>response.destroy());stream.pipe(response);return true;
 }

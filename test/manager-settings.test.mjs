@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,writeFile,readFile,readdir,rm,link} from 'node:fs/promises';import {join} from 'node:path';import {tmpdir} from 'node:os';import {parseEnv} from 'node:util';
 import {ManagerSettings} from '../server/system/manager/settings.mjs';import {ManagerLogs} from '../server/system/manager/logs.mjs';
-async function fixture(t,text='TICK_HZ=20\nPHONE_HUB_KEY=secret-do-not-expose\n',env=null){const directory=await mkdtemp(join(tmpdir(),'hvmp-settings-'));t.after(()=>rm(directory,{recursive:true,force:true}));const file=join(directory,'.env');if(text!==null)await writeFile(file,text);env??=text?parseEnv(text):{};const logs=new ManagerLogs(),supervisor={env:{...env}};const store=new ManagerSettings({directory,env,envFile:file,logs,supervisor});await store.initialize();return {directory,file,logs,store,supervisor};}
+async function fixture(t,text='TICK_HZ=20\nPHONE_HUB_KEY=secret-do-not-expose\n',env=null){const directory=await mkdtemp(join(tmpdir(),'hvmp-settings-'));t.after(()=>rm(directory,{recursive:true,force:true}));const file=join(directory,'.env');if(text!==null)await writeFile(file,text);env??=text?parseEnv(text):{};const logs=new ManagerLogs(),supervisor={env:{...env}};const store=new ManagerSettings({directory,env,envFile:file,logs,supervisor,isOwner:actor=>actor==='owner'});await store.initialize();return {directory,file,logs,store,supervisor};}
 test('editor exposes only declared settings; saves preserve private bytes, comments, CRLF and multiline values, with an exact private backup',async t=>{
  const original='# my server\r\nPHONE_HUB_KEY="private-key"\r\nCUSTOM="line one\r\nTICK_HZ=hidden-value\r\nline three"\r\nexport TICK_HZ = "20" # cadence\r\nTICK_HZ=20\r\nPORT=30007\r\n';const f=await fixture(t,original),before=await f.store.get();assert(!JSON.stringify(before).includes('private-key'));assert(!before.fields.some(s=>s.key==='PHONE_HUB_KEY'||s.key==='PORT'));
  const result=await f.store.save({revision:before.revision,changes:{TICK_HZ:'30',TRAFFIC_ENABLED:true}},'76561198000000001');assert.equal(result.changed,2);assert(result.restartRequired);const current=await readFile(f.file,'utf8');assert(current.includes('PHONE_HUB_KEY="private-key"\r\nCUSTOM="line one\r\nTICK_HZ=hidden-value\r\nline three"'));assert(current.includes('export TICK_HZ = 30 # cadence'));assert.equal(parseEnv(current).TICK_HZ,'30');
@@ -15,3 +15,17 @@ test('a pre-existing lock prevents concurrent writes and is never removed by a r
 test('hardlinked and oversized configuration files are refused without modifying their targets',async t=>{const f=await fixture(t);await link(f.file,join(f.directory,'linked'));await assert.rejects(f.store.get(),/env_unsafe/);await rm(join(f.directory,'linked'));await writeFile(f.file,'#'.repeat(262145));await assert.rejects(f.store.get(),/env_unsafe/);});
 test('audit failure prevents replacement and leaves a recoverable original',async t=>{const f=await fixture(t),before=await f.store.get();f.logs.audit=async()=>{throw Error('disk full');};await assert.rejects(f.store.save({revision:before.revision,changes:{TICK_HZ:30}},'owner'),/disk full/);assert.equal(parseEnv(await readFile(f.file,'utf8')).TICK_HZ,'20');assert(!(await readdir(f.directory)).some(n=>n.endsWith('.tmp')||n.endsWith('.hvmp-lock')));});
 test('a missing .env can be created without inventing or exposing keys',async t=>{const f=await fixture(t,null),before=await f.store.get();assert.equal(before.exists,false);await f.store.save({revision:before.revision,changes:{TRAFFIC_ENABLED:true}},'owner');assert.equal(await readFile(f.file,'utf8'),'TRAFFIC_ENABLED=true\n');});
+test('only the owner can change optional player mod permission',async t=>{
+ const f=await fixture(t);
+ const before=await f.store.get();
+ assert.equal(before.fields.find(s=>s.key==='ALLOW_OPTIONAL_MODS').value,'false');
+ const setting={revision:before.revision,changes:{ALLOW_OPTIONAL_MODS:true}};
+ await assert.rejects(f.store.save(setting,'administrator'),/permission_denied/);
+ assert.equal((await f.store.get()).revision,before.revision);
+ const result=await f.store.save(setting,'owner');
+ assert(result.restartRequired);
+ await f.store.prepareStart();
+ assert.equal(f.supervisor.env.ALLOW_OPTIONAL_MODS,'true');
+ f.store.markApplied();
+ assert.equal((await f.store.get()).restartRequired,false);
+});

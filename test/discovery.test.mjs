@@ -8,7 +8,8 @@ import {join} from 'node:path';
 import WebSocket from 'ws';
 import {startServerManager} from '../server/system/manager/main.mjs';
 import {communityOrigin,discoverCommunityServer} from '../launcher/server-discovery.mjs';
-import {DISCOVERY_PATH} from '../server/shared/discovery.mjs';
+import {DISCOVERY_PATH,OPTIONAL_ALLOWLIST_HEADER} from '../server/shared/discovery.mjs';
+import {SERVER_PAGE_PATH} from '../server/shared/server-page.mjs';
 import {GAME_VERSION,PROTOCOL} from '../server/shared/protocol.mjs';
 
 const owner='76561198000000001';
@@ -26,8 +27,13 @@ test('public discovery works with the game stopped and running, and private page
   ROOM:'TestRoom',MAX_PLAYERS:'32',HOST:'127.0.0.1',PORT:String(port),
   DATA_DIR:join(directory,'data'),LOG_DIR:join(directory,'logs'),ADDONS_DIR:join(directory,'addons'),
   MAP_MANIFEST:'none',NO_COLLISION_ZONES_ENABLED:'false',MANAGER_ADMIN_STEAM_IDS:owner,MANAGER_PUBLIC_URL:origin,LOG_COLORS:'false',
+  PLAYER_COLLISIONS:'false',TRAFFIC_ENABLED:'true',
  };
  await mkdir(env.DATA_DIR);
+ await mkdir(env.ADDONS_DIR);
+ await writeFile(join(env.ADDONS_DIR,'order.json'),JSON.stringify({schema:1,optional:[
+  {name:'Spring',source:'local',match:'spring.scs',after:null},
+ ]}));
  const requests=[],profileUrl='https://steamcommunity.com/profiles/'+owner+'?xml=1';
  const avatar='https://avatars.fastly.steamstatic.com/'+'a'.repeat(40)+'_medium.jpg';
  await writeFile(join(env.DATA_DIR,'manager-profiles.json'),JSON.stringify({schema:1,profiles:{[owner]:{name:'Truck Driver',avatar}}}));
@@ -47,16 +53,21 @@ test('public discovery works with the game stopped and running, and private page
  assert.equal(discovery.auth,'guest');
  assert.equal(discovery.status,'stopped');
  assert.equal(discovery.online,false);
+ assert.equal(discovery.allowOptionalMods,false);
+ assert.equal(discovery.collisions,null);
+ assert.equal(discovery.traffic,null);
  assert.equal(discovery.room,'TestRoom');
  assert.equal(discovery.maxPlayers,32);
  assert.equal(discovery.endpoints.manifest,origin+'/content/manifest');
  const descriptor=await (await get(DISCOVERY_PATH)).json();
- assert.deepEqual(Object.keys(descriptor).sort(),['schema','service','edition','id','name','status','online','serverVersion','gameVersion','protocol','playerCount','maxPlayers','map','connection','endpoints'].sort());
+ assert.deepEqual(Object.keys(descriptor).sort(),['schema','service','edition','id','name','status','online','serverVersion','gameVersion','protocol','playerCount','maxPlayers','map','connection','endpoints','allowOptionalMods','collisions','traffic'].sort());
  assert.equal(JSON.stringify(descriptor).includes(owner),false);
  assert.equal((await get(DISCOVERY_PATH,{method:'HEAD'})).status,200);
  assert.equal((await get(DISCOVERY_PATH,{method:'POST'})).status,405);
  assert.equal((await get('/health')).status,503);
- for(const path of ['/manager/api/status','/manager/api/logs','/manager/api/settings'])assert.equal((await get(path)).status,401);
+ for(const path of ['/manager/api/status','/manager/api/logs','/manager/api/settings','/manager/api/branding/page'])assert.equal((await get(path)).status,401);
+ assert.equal((await (await get(SERVER_PAGE_PATH)).json()).description,'');
+ assert.equal((await get(SERVER_PAGE_PATH,{method:'POST'})).status,405);
  assert.doesNotMatch(await (await get('/manager/')).text(),/data-page="updates"/);
 
  async function login(id){
@@ -85,20 +96,40 @@ test('public discovery works with the game stopped and running, and private page
  assert.equal((await get('/manager/api/birdwatch',{headers:{Cookie:cookie}})).status,404);
  const ready=once(manager.supervisor,'ready');
  const actionHeaders={Cookie:cookie,Origin:origin,'Content-Type':'application/json','X-HVMP-CSRF':me.csrf};
+ const savePage=data=>get('/manager/api/branding/page',{method:'POST',headers:actionHeaders,body:JSON.stringify(data)});
+ assert.equal((await savePage({discordUrl:'https://not-discord.example/invite'})).status,400);
+ assert.equal((await savePage({websiteUrl:'javascript:alert(1)'})).status,400);
+ const branding={description:'Welcome to Test Club',bannerUrl:'https://test.example/banner.png',websiteUrl:'https://test.example/',
+  discordUrl:'https://discord.gg/test',whatsappUrl:'https://chat.whatsapp.com/test',html:'<h2>Community runs</h2>',css:'h2 { color: gold }'};
+ assert.equal((await savePage(branding)).status,200);
+ assert.deepEqual(await (await get(SERVER_PAGE_PATH)).json(),{schema:1,...branding});
  const started=await get('/manager/api/power',{method:'POST',headers:actionHeaders,body:JSON.stringify({action:'start',confirm:true})});
  assert.equal(started.status,200);
  await ready;
  const running=await discoverCommunityServer(origin);
  assert.equal(running.online,true);
+ assert.equal(running.collisions,false);
+ assert.equal(running.traffic,true);
  assert.equal(running.gameVersion,GAME_VERSION);
  assert.equal((await get('/health')).status,200);
  assert.equal((await get('/content/manifest')).status,200);
  assert.equal((await (await get('/servers')).json()).servers[0].id,'test-club');
+ assert.equal(running.allowOptionalMods,false);
+ async function joinWithOptionalMods(optionalOrderRevision){
+  const socket=new WebSocket(running.websocketUrl);
+  try{
+   const message=once(socket,'message');
+   await once(socket,'open');
+   socket.send(JSON.stringify({type:'join',protocol:PROTOCOL,gameVersion:GAME_VERSION,name:'OptionalTester',room:running.room,capabilities:{traffic:6},optionalModsActive:true,optionalOrderRevision})+'\n');
+   return JSON.parse(String((await message)[0]).split('\n')[0]);
+  }finally{socket.terminate();}
+ }
+ assert.equal((await joinWithOptionalMods()).code,'optional_mods_disabled');
  const player=new WebSocket(running.websocketUrl);
  try{
   const received=once(player,'message');
   await once(player,'open');
-  player.send(JSON.stringify({type:'join',protocol:PROTOCOL,gameVersion:GAME_VERSION,name:'RoadTester',room:running.room})+'\n');
+  player.send(JSON.stringify({type:'join',protocol:PROTOCOL,gameVersion:GAME_VERSION,name:'RoadTester',room:running.room,capabilities:{traffic:6}})+'\n');
   const welcome=JSON.parse(String((await received)[0]).split('\n')[0]);
   assert.equal(welcome.type,'welcome',welcome.code);
   const removed=new Promise(resolve=>player.on('message',buffer=>{
@@ -111,6 +142,17 @@ test('public discovery works with the game stopped and running, and private page
   assert.equal(kick.status,200);assert.equal((await kick.json()).ok,true);
   assert.equal((await removed).reason,'Test guest moderation');
  }finally{player.terminate();}
+ const restarted=once(manager.supervisor,'ready');
+ manager.supervisor.env.ALLOW_OPTIONAL_MODS='true';
+ await manager.supervisor.power('restart');
+ await restarted;
+ assert.equal((await discoverCommunityServer(origin)).allowOptionalMods,true);
+ assert.equal((await (await get(DISCOVERY_PATH)).json()).allowOptionalMods,false);
+ assert.equal((await (await get('/content/manifest')).json()).optionalOrder,undefined);
+ const {optionalOrder}=await (await get('/content/manifest',{headers:{[OPTIONAL_ALLOWLIST_HEADER]:'1'}})).json();
+ assert.equal(optionalOrder.slots[0].match,'spring.scs');
+ assert.equal((await joinWithOptionalMods()).code,'optional_order_changed');
+ assert.equal((await joinWithOptionalMods(optionalOrder.revision)).type,'welcome');
 });
 
 test('launcher fetches only the chosen origin and rejects incompatible responses and URLs',async()=>{

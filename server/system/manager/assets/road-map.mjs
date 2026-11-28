@@ -1,3 +1,4 @@
+import {managerApi} from './instance-api.mjs';
 import {DEFAULT_MAP,validateMap,tilePlan} from './map-coordinates.mjs';
 export class TileCache{
  constructor({limit=96,parallel=6,makeImage=()=>new Image(),redraw=()=>{},now=Date.now}={}){Object.assign(this,{limit,parallel,makeImage,redraw,now});this.items=new Map();this.queue=[];this.loading=0;this.active=true;}
@@ -16,7 +17,7 @@ const safePlayers=players=>players.filter(p=>p.position&&[p.position.x,p.positio
 export class RoadMap{
  constructor(){this.view={x:0,z:0,scale:.08};this.selected=null;this.initialized=false;this.config=null;this.players=[];this.cities=[];this.frame=0;this.cache=new TileCache({redraw:()=>this.drawSoon()});}
  async bind(root){this.root=root;this.canvas=root.querySelector('canvas');this.cache.setActive(true);this.bindControls();
-  try{if(!this.config){const response=await fetch('/manager/api/map',{cache:'no-store'});if(!response.ok)throw Error('Map configuration unavailable');this.config=validateMap(await response.json());if(this.config.cities){try{const r=await fetch('/manager/map-cities.json');const data=await r.json();this.cities=Array.isArray(data)?data.filter(p=>typeof p.name==='string'&&Number.isFinite(p.x)&&Number.isFinite(p.z)).slice(0,2000):[];}catch{this.cities=[];}}}
+  try{if(!this.config){const response=await fetch(managerApi('map'),{cache:'no-store'});if(!response.ok)throw Error('Map configuration unavailable');this.config=validateMap(await response.json());if(this.config.cities){try{const r=await fetch('/manager/map-cities.json');const data=await r.json();this.cities=Array.isArray(data)?data.filter(p=>typeof p.name==='string'&&Number.isFinite(p.x)&&Number.isFinite(p.z)).slice(0,2000):[];}catch{this.cities=[];}}}
    if(!this.canvas.isConnected)return;const link=root.querySelector('[data-map-attribution]');link.textContent=this.config.attribution;link.href=this.config.attributionUrl;if(!this.initialized)this.fit();this.drawSoon();
   }catch{this.message('Map configuration unavailable. Check data/manager-map.json.',true);}
  }

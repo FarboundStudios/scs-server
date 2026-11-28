@@ -12,6 +12,8 @@ ETS2 1.62.3.3s and works with the
 tankers, curtain siders and other `def/vehicle/trailer/` trailers) and their
 loads are now shared with other players. Players need launcher 1.0.3.
 
+See the [changelog](CHANGELOG.md) for the current development changes.
+
 ## Run a server
 
 Use Node.js 22.13 or newer with npm. From the project directory:
@@ -33,6 +35,11 @@ Open `http://127.0.0.1:30007/manager/`, sign in with Steam and click **Start**.
 Use the exact address set in `MANAGER_PUBLIC_URL`. The Manager and the game
 share the same port. After a full process restart the game stays stopped until
 an operator starts it.
+
+See the [Docker guide](docs/docker.md) to run the Manager on Linux in a
+container. In **Instances**, use **Import server pack** to create a stopped
+instance directly from a full `.hvmpbackup` file. To export one, open
+**Server packs** on the source instance.
 
 ## Manager accounts and roles
 
@@ -122,6 +129,12 @@ A launcher adds this instance using the Manager's public HTTPS address. The
 API describes one instance and stays available while the game is stopped.
 See [the discovery API and integration example](docs/discovery.md).
 
+Players using Steam’s `-homedir` option or a relocated HeavyMP cache need a
+launcher release that includes the compatible ETS2 bridge. If a player sees a
+custom-folder bridge error after the launcher connects, update the Windows
+launcher from its release channel. The player can keep their Steam options and
+join the same server without a Server Manager restart.
+
 ```sh
 npm run discover -- http://127.0.0.1:30007
 ```
@@ -133,8 +146,10 @@ endpoint reports stopped instances with HTTP 200.
 
 ## Addons, scripts and operations
 
+- Owners can enable **Allow optional player mods** under **Settings → Server access** and restart the game process. Compatible launchers can then load player-selected packages declared `mp_mod_optional: true` without adding them to the shared manifest.
+- In **Addons**, owners can add optional slots by local archive or folder name, or by Steam Workshop item ID. Drag slots and shared archives into the global order, with highest priority at the bottom. **Mark optional** keeps an uploaded archive in the library and changes its enabled row to a player-owned slot. Missing or incompatible copies are skipped. Start the game process to publish the saved order.
 - Place `.scs` and `.zip` addons in `addons/`. The game process verifies and
-  indexes them on Start. For a standalone map, set `MAP_MODULE` to its MBD
+  indexes them on Start. Add-ons can be up to 8 GiB each and 32 GiB combined. The launcher automatically downloads and verifies enabled add-ons before starting ETS2. For a standalone map, set `MAP_MODULE` to its MBD
   stem and use a matching ETS2 profile. If non-collision zones are enabled,
   use a catalogue for that exact map.
 - The phone ships with local numbers and messaging. Operators can optionally
@@ -145,6 +160,24 @@ endpoint reports stopped instances with HTTP 200.
 - Use the Manager for the console, player list, live map, settings, backups,
   schedules, logs and moderation. The operator CLI is also available via
   `npm run console -- help`.
+- The primary Manager's **Instances** page lets an owner create, start, stop,
+  and restart independent game servers. Each instance has its own name,
+  port, settings, add-ons, custom scripts, logs and game data under
+  `data/instances/`. Create each with a unique ID and local port, then use
+  **Manage** or the server's sidebar entry to open its settings and load order.
+  The Instances overview shows CPU, RAM, tick time and players by server.
+  The selected instance name, ID and port are visible while making edits.
+  In that instance's **Settings**, upload a server profile picture. The
+  HeavyMP Launcher shows the picture in its server list, including while
+  the game is stopped and the Manager is available.
+  Stop an instance before deleting it. **Delete all instances** requires
+  all game processes to be stopped. Deletion retains the files on disk.
+  Reusing an ID creates a fresh data directory. If you delete the built-in
+  game instance, its original port stays reserved for the dashboard.
+  For public play, give each instance its own HTTPS origin and configure the
+  reverse proxy to forward that address to the instance's loopback port.
+  Saved instances reappear after a Manager restart and their games start
+  when an owner selects **Start**.
 - To update from source, stop the Manager and its game process, back up
   `.env`, `data/`, `addons/` and your custom scripts, update the checkout,
   run `npm ci`, then start the Manager and game again.

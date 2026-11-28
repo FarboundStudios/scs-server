@@ -56,7 +56,7 @@ export async function createRelay(options={}){
  function kickSession(s,code,details={}){send(s.socket,{type:'error',code,...details});s.socket.end();setTimeout(()=>s.socket.destroy(),1500).unref?.();}
  const worldTimeline=createWorldTimeline(options.world),vtc=createVtc({sessions,initial:options.vtcs,persist:options.persistVtcs,log,now:options.now});
  const modules=options.modules??createModulesRuntime(await readModules(null),log);
- const messages=createServerMessages({sessions,onMessage:options.onChat});
+ const messages=createServerMessages({sessions,onMessage:options.onChat,stateTtl});
  const chatContext={sessions,modules,messages,sendSerialized,world:worldTimeline,persistWorld:options.persistWorld,index,vtc,
   localRadius:chatRadius,globalRate:globalChatRate,commands:helpers=>createCommands({sessions,moderation:localPermissions,kick:kickSession,tell:helpers.tell,announce:helpers.announce,depots:options.depots})};
  const classicChat=await modules.activateService('classic-chat',entry=>entry.create(chatContext));
@@ -96,6 +96,11 @@ export async function createRelay(options={}){
    if(rejected)return;const now=performance.now();metrics.incomingMessages++;if(now-rateStart>=1000){rateStart=now;count=0;ingress=0;}if(++count>200){socket.destroy();return;}
    if(!session){
     if(msg.type!=='join'||msg.protocol!==PROTOCOL)return fail('protocol');joinTokens=Math.min(200,joinTokens+(now-joinAt)/10);joinAt=now;if(joinTokens<1)return fail('server_busy');joinTokens--;if(canonicalRoom(msg.room)!==room)return fail('access_denied');if(msg.gameVersion!==GAME_VERSION)return fail('game_version');if((msg.mapRevision??null)!==(content?.revision??null))return fail('map_mismatch');
+    if(msg.optionalModsActive===true){
+     if(options.allowOptionalMods!==true)return fail('optional_mods_disabled');
+     if(options.optionalOrder&&!options.optionalOrder.slots.length)return fail('optional_mods_disabled');
+     if((options.optionalOrder||msg.optionalOrderRevision!==undefined)&&msg.optionalOrderRevision!==options.optionalOrder?.revision)return fail('optional_order_changed');
+    }
     const expectedMapModule=content?.manifest.module??'europe';
     if((msg.mapModule??'europe')!==expectedMapModule)return fail('map_module_mismatch');
     const name=cleanName(msg.name),identity=identityHash(msg.identity);
@@ -156,7 +161,7 @@ export async function createRelay(options={}){
  const healthSnapshot=()=>({service:'HeavyMP',map:content?{id:content.manifest.id,version:content.manifest.version,revision:content.revision,module:content.manifest.module}:null,version:SERVER_VERSION,minLauncherVersion:null,authentication:false,staffOnly,missions:{mode:'local',registrySource:'file',reason:null},protocol:PROTOCOL,transport:'websocket',gameVersion:GAME_VERSION,capabilities,traffic:trafficService.diagnostics(),sectors:sectorScheduler?.diagnostics()??{enabled:false},noCollisionZones:collisionZones.diagnostics(),players:sessions.size,maxPlayers,tickHz,nearbyLimit,syncRadius:radius,gridCellSize:cellSize,interestIntervalMs:interestMs,candidateBudget,metrics:{...metrics,...networkMetrics.sample(metrics,sessions),eventLoopP95Ms:Math.round(histogram.percentile(95)/1e4)/100}});
  const server=options.plaintext?net.createServer(accept):http.createServer((request,response)=>{
   response.setHeader('Cache-Control','no-store');response.setHeader('X-Content-Type-Options','nosniff');const url=new URL(request.url,'http://localhost');
-  if(serveMapContent(content,request,response,url))return;
+  if(serveMapContent(content,request,response,url,options.optionalOrder))return;
   if(request.method==='GET'&&(url.pathname==='/servers'||url.pathname==='/players')){
    response.setHeader('Access-Control-Allow-Origin','*');response.writeHead(200,{'Content-Type':'application/json; charset=utf-8'});
    if(url.pathname==='/servers')response.end(JSON.stringify({servers:servers.map(s=>({...s,healthUrl:'https://'+s.host+':'+s.port+'/health',playersUrl:'https://'+s.host+':'+s.port+'/players',websocketUrl:'wss://'+s.host+':'+s.port+WEBSOCKET_PATH,online:s.id===serverId?true:null,staffOnly:s.id===serverId?staffOnly:null,playerCount:s.id===serverId?sessions.size:null,maxPlayers:s.id===serverId?maxPlayers:null}))}));
