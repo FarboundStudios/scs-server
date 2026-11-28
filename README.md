@@ -129,6 +129,12 @@ A launcher adds this instance using the Manager's public HTTPS address. The
 API describes one instance and stays available while the game is stopped.
 See [the discovery API and integration example](docs/discovery.md).
 
+Players using Steam’s `-homedir` option or a relocated HeavyMP cache need a
+launcher release that includes the compatible ETS2 bridge. If a player sees a
+custom-folder bridge error after the launcher connects, update the Windows
+launcher from its release channel. The player can keep their Steam options and
+join the same server without a Server Manager restart.
+
 ```sh
 npm run discover -- http://127.0.0.1:30007
 ```
