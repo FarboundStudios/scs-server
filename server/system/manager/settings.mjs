@@ -6,6 +6,7 @@ const flag=(key,label,group,value)=>({key,label,group,type:'select',options:['tr
 export const SETTINGS=[
  {key:'ROOM',label:'Room name',group:'Access',type:'text',default:'HeavyMP',pattern:/^[A-Za-z0-9_-]{1,32}$/},
  number('MAX_PLAYERS','Maximum players','Access',2,5000,5000),flag('STAFF_ONLY','Staff-only access','Access',false),
+ {...flag('ALLOW_OPTIONAL_MODS','Allow optional player mods','Access',false),ownerOnly:true},
  number('TICK_HZ','Tick rate (Hz)','Synchronization',10,1000,20),number('MAX_NEARBY_PLAYERS','Nearby players','Synchronization',1,32,32),
  number('SYNC_RADIUS','Synchronization radius (m)','Synchronization',200,3000,1000),number('GRID_CELL_SIZE','Sector size (m)','Synchronization',50,4000,250),
  number('INTEREST_INTERVAL_MS','Interest refresh (ms)','Synchronization',50,1000,200),number('INTEREST_CANDIDATE_BUDGET','Candidate budget','Synchronization',64,4096,512),
@@ -38,17 +39,33 @@ function patch(text,changes){const assignments=[];const re=/^[ \t]*(?:export[ \t
  const present=new Set(assignments.map(a=>a.key)),newline=text.includes('\r\n')?'\r\n':'\n';const added=Object.entries(changes).filter(([key])=>!present.has(key));if(added.length){if(text&&!text.endsWith('\n'))text+=newline;text+=added.map(([k,v])=>k+'='+v).join(newline)+newline;}return text;
 }
 export class ManagerSettings{
- constructor({directory,env,envFile=resolve('.env'),logs,supervisor}){Object.assign(this,{directory,env:{...env},appliedEnv:{...env},envFile:resolve(envFile),logs,supervisor});this.tokenKey=randomBytes(32);this.overrides=null;}
+ constructor({directory,env,envFile=resolve('.env'),logs,supervisor,isOwner=()=>false}){Object.assign(this,{directory,env:{...env},appliedEnv:{...env},envFile:resolve(envFile),logs,supervisor,isOwner});this.tokenKey=randomBytes(32);this.overrides=null;}
  async initialize(){if(this.overrides)return;const file=await this.read();this.overrides=new Set(SETTINGS.filter(s=>this.env[s.key]!==undefined&&String(this.env[s.key])!==file.values[s.key]).map(s=>s.key));}
  revision(file){return createHmac('sha256',this.tokenKey).update(file.exists?'1':'0').update(file.bytes).digest('hex');}
  async read(){let handle;try{const stat=await lstat(this.envFile);if(stat.isSymbolicLink()||!stat.isFile()||stat.nlink!==1||stat.size>262144)throw failure('env_unsafe');handle=await open(this.envFile,constants.O_RDONLY|(constants.O_NOFOLLOW??0));const opened=await handle.stat();if(opened.ino!==stat.ino||opened.dev!==stat.dev||opened.nlink!==1)throw failure('env_unsafe');const bytes=await handle.readFile();if(bytes.length>262144)throw failure('env_unsafe');new TextDecoder('utf-8',{fatal:true}).decode(bytes);return {bytes,exists:true,mode:stat.mode&0o777,values:parseEnv(bytes.toString('utf8'))};}catch(e){if(e.code==='ENOENT')return {bytes:Buffer.alloc(0),exists:false,mode:0o600,values:{}};if(e.message.startsWith('env_'))throw e;throw failure('env_unavailable');}finally{await handle?.close();}}
  snapshot(file){const result={revision:this.revision(file),exists:file.exists,fields:SETTINGS.map(s=>{const fileValue=file.values[s.key]??null,effective=this.appliedEnv[s.key]??s.default;return {...s,pattern:undefined,value:fileValue??(this.overrides.has(s.key)?this.env[s.key]:s.default),effective,source:this.overrides.has(s.key)?'environment':fileValue===null?'default':'file',overridden:this.overrides.has(s.key)};})};result.restartRequired=result.fields.some(s=>!s.overridden&&String(s.value)!==String(s.effective));return result;}
  async get(){await this.initialize();return this.snapshot(await this.read());}
+ async backupValues(){
+  const {fields}=await this.get();
+  return Object.fromEntries(fields.filter(field=>!field.overridden).map(field=>[field.key,field.value]));
+ }
+ async restoreBackupText(values){
+  await this.initialize();
+  if(!values||typeof values!=='object'||Array.isArray(values))throw failure('invalid_backup');
+  const changes={};
+  for(const [key,value]of Object.entries(values)){
+   const field=fields.get(key);
+   if(!field)throw failure('invalid_backup');
+   const normalized=normalize(field,value);
+   if(!this.overrides.has(key))changes[key]=normalized;
+  }
+  return patch((await this.read()).bytes.toString('utf8'),changes);
+ }
  // Refresh only safe, declared game settings; inherited host/keys/access stay fixed.
  async prepareStart(){await this.initialize();const file=await this.read();for(const s of SETTINGS){if(this.overrides.has(s.key))this.supervisor.env[s.key]=this.env[s.key];else if(Object.hasOwn(file.values,s.key))this.supervisor.env[s.key]=file.values[s.key];else delete this.supervisor.env[s.key];}}
  markApplied(){this.appliedEnv={...this.supervisor.env};}
  async save({revision,changes},actor){if(this.busy)throw failure('settings_busy');this.busy=true;let lock,temp;
- try{await this.initialize();if(!changes||typeof changes!=='object'||Array.isArray(changes)||Object.keys(changes).length>SETTINGS.length||typeof revision!=='string')throw failure('invalid_settings');const normalized={};for(const [key,value]of Object.entries(changes)){if(!fields.has(key))throw failure('setting_not_editable');normalized[key]=normalize(fields.get(key),value);}
+ try{await this.initialize();if(!changes||typeof changes!=='object'||Array.isArray(changes)||Object.keys(changes).length>SETTINGS.length||typeof revision!=='string')throw failure('invalid_settings');const normalized={};for(const [key,value]of Object.entries(changes)){const field=fields.get(key);if(!field)throw failure('setting_not_editable');if(field.ownerOnly&&!this.isOwner(actor))throw failure('permission_denied');normalized[key]=normalize(field,value);}
   try{lock=await open(this.envFile+'.hvmp-lock','wx',0o600);}catch(e){throw failure(e.code==='EEXIST'?'settings_busy':'env_unavailable');}
   const file=await this.read();if(revision!==this.revision(file))throw failure('settings_conflict');
   for(const key of Object.keys(normalized)){if(this.overrides.has(key))throw failure('setting_overridden',key);if(file.values[key]===normalized[key])delete normalized[key];}

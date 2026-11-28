@@ -1,3 +1,6 @@
+import {optionalModsEnabled} from '../shared/discovery.mjs';
+import {describeOptionalOrder} from '../shared/optional-order.mjs';
+import {addonOrder} from './addon-inspection.mjs';
 import {sectorSettings} from './sectors.mjs';
 import {trafficSettings} from '../shared/traffic.mjs';
 import {trafficCoordinationSettings} from './traffic-native.mjs';
@@ -7,6 +10,7 @@ import {zoneSetting} from '../shared/no-collision-zones.mjs';
 import {staffOnlySetting,staffIdentities} from './access.mjs';
 import {collisionSetting} from '../shared/collisions.mjs';
 import {loadMapContent,loadAddonContent} from './content.mjs';
+import {dealerBrandingArchive,dealerBrandingSupported,readDealerBranding} from './dealer-branding.mjs';
 import { mkdir, readFile, writeFile, rename, access } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { isIP } from 'node:net';
@@ -50,12 +54,22 @@ export async function prepareServer(env = process.env, log = console.log, servic
   if(!await exists(vtcPath))await writeFile(vtcPath,JSON.stringify({version:1,companies:[]})+'\n',{flag:'wx',mode:0o600});
   const vtcs=JSON.parse(await readFile(vtcPath,'utf8'));
   const persistVtcs=async state=>{await writeFile(vtcPath+'.tmp',JSON.stringify(state)+'\n',{mode:0o600});await rename(vtcPath+'.tmp',vtcPath);};
-  let addonsReport;
+  let addonsReport, optional=[];
   const mapModule=env.MAP_MODULE?.trim();
+  const dealerBranding=!dealerBrandingSupported(env)?null:await readDealerBranding(directory).then(dealerBrandingArchive).catch(()=>{
+    log('Dealer branding could not be read. Using the HeavyMP name and icon.');
+    return null;
+  });
   if(env.MAP_MANIFEST!=='none')services.onAddonScan?.();
   const content=env.MAP_MANIFEST==='none'?null:env.MAP_MANIFEST?await loadMapContent(resolve(env.MAP_MANIFEST)):await loadAddonContent(env.ADDONS_DIR??'./addons',{
-    indexPath:join(directory,'addons.json'),mapModule,log,onHash:services.onAddonHash,onReport:report=>{addonsReport=report;},
+    indexPath:join(directory,'addons.json'),mapModule,dealerBranding,log,onHash:services.onAddonHash,onReport:report=>{addonsReport=report;},onOptional:slots=>{optional=slots;},
   });
+  if(env.MAP_MANIFEST&&optionalModsEnabled(env)){
+    const names=content?.manifest.files.map(file=>file.name)??[];
+    const order=await addonOrder(resolve(env.ADDONS_DIR??'./addons'),names,log);
+    optional=order.optional.map(slot=>({...slot,after:names.includes(slot.after)?slot.after:null}));
+  }
+  const optionalOrder=optionalModsEnabled(env)?describeOptionalOrder(optional,content?.revision??null):null;
   if(mapModule!==undefined&&mapModule!==(content?.manifest.module??'europe'))throw Error('MAP_MODULE does not match the active map manifest.');
   if(content)log('Official map: '+content.manifest.id+' '+content.manifest.version+' ('+content.manifest.module+')');
   log(`Public connection: wss://${publicHost}:${publicPort}${WEBSOCKET_PATH} · no certificate import required`);
@@ -67,5 +81,5 @@ export async function prepareServer(env = process.env, log = console.log, servic
   if(zoneCatalogue&&(zoneCatalogue.contentRevision||content?.manifest.module&&content.manifest.module!=='europe')&&zoneCatalogue.contentRevision!==(content?.revision??null))throw Error('No-collision zone catalogue does not match the active map content. Regenerate it for this manifest.');
   log('Non-collision zones: '+(noCollisionZonesEnabled?zoneCatalogue.zones.length+' automatic zones.':'disabled.'));
   const traffic={...trafficSettings(env),...trafficCoordinationSettings(env),...sectorSettings(env)};log(traffic.trafficEnabled?'Traffic: native ETS2 AI with server-coordinated proximity groups.':'Traffic: disabled.');
-  return { ...traffic,noCollisionZonesEnabled,zoneCatalogue,localStaff,dataDirectory:directory,dispatchDatabase:join(directory,'missions.sqlite'),staffOnly,collisions:collisionSetting(env.PLAYER_COLLISIONS),depots,host: env.HOST ?? '0.0.0.0', port: listenPort, room, maxPlayers,nearbyLimit:Number(env.MAX_NEARBY_PLAYERS??32),radius:Number(env.SYNC_RADIUS??1000),tickHz:Number(env.TICK_HZ??20),cellSize:Number(env.GRID_CELL_SIZE??250),interestMs:Number(env.INTEREST_INTERVAL_MS??200),candidateBudget:Number(env.INTEREST_CANDIDATE_BUDGET??512),chatRadius:Number(env.LOCAL_CHAT_RADIUS??500),globalChatRate:Number(env.GLOBAL_CHAT_RATE??6),maxConfigBytes:Number(env.MAX_CONFIG_MB??512)*1024*1024,world,servers,serverId,content,addonsReport,persistWorld,vtcs,persistVtcs };
+  return { ...traffic,noCollisionZonesEnabled,zoneCatalogue,localStaff,allowOptionalMods:optionalModsEnabled(env),optionalOrder,dataDirectory:directory,dispatchDatabase:join(directory,'missions.sqlite'),staffOnly,collisions:collisionSetting(env.PLAYER_COLLISIONS),depots,host: env.HOST ?? '0.0.0.0', port: listenPort, room, maxPlayers,nearbyLimit:Number(env.MAX_NEARBY_PLAYERS??32),radius:Number(env.SYNC_RADIUS??1000),tickHz:Number(env.TICK_HZ??20),cellSize:Number(env.GRID_CELL_SIZE??250),interestMs:Number(env.INTEREST_INTERVAL_MS??200),candidateBudget:Number(env.INTEREST_CANDIDATE_BUDGET??512),chatRadius:Number(env.LOCAL_CHAT_RADIUS??500),globalChatRate:Number(env.GLOBAL_CHAT_RATE??6),maxConfigBytes:Number(env.MAX_CONFIG_MB??512)*1024*1024,world,servers,serverId,content,addonsReport,persistWorld,vtcs,persistVtcs };
 }

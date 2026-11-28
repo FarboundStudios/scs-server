@@ -1,4 +1,5 @@
-import {DISCOVERY_PATH,DISCOVERY_SCHEMA} from '../server/shared/discovery.mjs';
+import {createHash} from 'node:crypto';
+import {DISCOVERY_PATH,DISCOVERY_SCHEMA,OPTIONAL_ALLOWLIST_HEADER,SERVER_LOGO_PATH,SERVER_LOGO_LIMIT,validLogoHash,validLogoPng} from '../server/shared/discovery.mjs';
 import {WEBSOCKET_PATH} from '../server/shared/branding.mjs';
 import {validMapModule} from '../server/shared/content.mjs';
 
@@ -6,6 +7,7 @@ const bodyLimit=16*1024;
 const loopback=new Set(['localhost','127.0.0.1','[::1]']);
 const states=new Set(['stopped','starting','running','stopping','crashed']);
 const paths={health:'/health',players:'/players',manifest:'/content/manifest'};
+const logos=new Map();
 
 export function communityOrigin(address){
  const url=URL.parse(address);
@@ -44,7 +46,7 @@ export async function discoverCommunityServer(address,{fetch:fetcher=fetch}={}){
  const origin=communityOrigin(address);
  const request=new URL(DISCOVERY_PATH,origin);
  const server=await discoveryBody(await fetcher(request,{
-  headers:{Accept:'application/json'},credentials:'omit',redirect:'error',signal:AbortSignal.timeout(6000),
+  headers:{Accept:'application/json',[OPTIONAL_ALLOWLIST_HEADER]:'1'},credentials:'omit',redirect:'error',signal:AbortSignal.timeout(6000),
  }));
  const validMap=server?.map===null||(validMapModule(server?.map?.module)&&
   (server.map.revision===null||/^[a-f0-9]{64}$/.test(server.map.revision)));
@@ -66,9 +68,38 @@ export async function discoverCommunityServer(address,{fetch:fetcher=fetch}={}){
  websocket.protocol=websocket.protocol==='https:'?'wss:':'ws:';
  return {
   origin,id:server.id,name:server.name,online:server.online,status:server.status,
+  logo:validLogoHash(server.logo)?server.logo:null,
   serverVersion:server.serverVersion,gameVersion:server.gameVersion,protocol:server.protocol,
   playerCount:server.playerCount,maxPlayers:server.maxPlayers,map:server.map,
   auth:connection.auth,room:connection.room,websocketUrl:websocket.href,
+  allowOptionalMods:server.allowOptionalMods===true,
+  collisions:typeof server.collisions==='boolean'?server.collisions:null,
+  traffic:typeof server.traffic==='boolean'?server.traffic:null,
   endpoints:Object.fromEntries(Object.entries(paths).map(([key,path])=>[key,new URL(path,origin).href])),
  };
+}
+
+export async function fetchCommunityLogo(server,{fetch:fetcher=fetch}={}){
+ if(!validLogoHash(server?.logo))return null;
+ const url=new URL(SERVER_LOGO_PATH+server.logo,communityOrigin(server.origin));
+ const key=url.href;
+ if(logos.has(key))return logos.get(key);
+ const response=await fetcher(url,{headers:{Accept:'image/png'},credentials:'omit',redirect:'error',signal:AbortSignal.timeout(2500)});
+ if(!response.ok||!response.body||response.headers.get('content-type')!=='image/png'||Number(response.headers.get('content-length'))>SERVER_LOGO_LIMIT){
+  await response.body?.cancel();return null;
+ }
+ const reader=response.body.getReader(),chunks=[];let size=0;
+ try{
+  for(;;){
+   const {done,value}=await reader.read();if(done)break;
+   size+=value.byteLength;if(size>SERVER_LOGO_LIMIT)return null;
+   chunks.push(Buffer.from(value));
+  }
+ }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+ const png=Buffer.concat(chunks,size);
+ if(!validLogoPng(png)||createHash('sha256').update(png).digest('hex')!==server.logo)return null;
+ const data='data:image/png;base64,'+png.toString('base64');
+ if(logos.size>=24)logos.delete(logos.keys().next().value);
+ logos.set(key,data);
+ return data;
 }

@@ -9,9 +9,13 @@
  <aside class="sidebar" id="sidebar">
   <a class="brand" href="#overview" aria-label="HVMP Server Manager overview"><img class="brand-mark" src="/manager/hvmp-mark.svg" width="107" height="35" alt="HVMP"><span>Server Manager</span></a>
   <nav id="navigation" aria-label="Main navigation">
+   <button data-page="instances"><i data-icon="grid"></i><span class="nav-text">Instances</span></button>
+   <ul id="instance-navigation" aria-label="Server instances" hidden></ul>
+   <div id="instance-pages">
    <span class="nav-label">Server</span><button data-page="overview"><i data-icon="grid"></i><span class="nav-text">Overview</span></button><button data-page="console"><i data-icon="terminal"></i><span class="nav-text">Console</span></button><button data-page="players"><i data-icon="users"></i><span class="nav-text">Players</span><span id="nav-count" class="nav-count">0</span></button><button data-page="map"><i data-icon="map"></i><span class="nav-text">Live map</span></button>
    <span class="nav-label">Management</span><button data-page="addons"><i data-icon="box"></i><span class="nav-text">Addons</span></button><button data-page="scripts"><i data-icon="terminal"></i><span class="nav-text">Scripts</span></button><button data-page="backups"><i data-icon="archive"></i><span class="nav-text">Backups</span></button><button data-page="automation"><i data-icon="calendar"></i><span class="nav-text">Schedules</span></button><button data-page="moderation"><i data-icon="shield"></i><span class="nav-text">Moderation</span></button><button data-page="access"><i data-icon="users"></i><span class="nav-text">Users &amp; roles</span></button>
    <span class="nav-label">Activity</span><button data-page="performance"><i data-icon="activity"></i><span class="nav-text">Performance</span></button><button data-page="chat"><i data-icon="message"></i><span class="nav-text">Chat history</span></button><button data-page="logs"><i data-icon="list"></i><span class="nav-text">Logs</span></button><button data-page="audit"><i data-icon="clock"></i><span class="nav-text">Audit log</span></button><button data-page="settings"><i data-icon="settings"></i><span class="nav-text">Settings</span></button>
+   </div>
   </nav>
   <div class="sidebar-foot"><button id="sidebar-size" class="sidebar-size" type="button" aria-label="Collapse sidebar" title="Collapse sidebar" aria-pressed="false"><i data-icon="panel-left"></i><span>Collapse sidebar</span></button><div class="account"><div id="avatar" class="avatar"></div><div class="account-text"><strong id="account-name"></strong><small id="account-role"></small></div><button id="logout" class="icon-button" aria-label="Sign out"><i data-icon="logout"></i></button></div></div>
  </aside>
@@ -20,7 +24,43 @@
   <div class="workspace-inner">
    <section class="server-header" aria-label="Server information"><div class="server-identity"><div class="game-icon"><i data-icon="truck"></i></div><div><div class="server-title-row"><h2 id="instance-title">HeavyMP</h2><span id="top-status" class="badge">Starting</span></div><div class="server-meta"><span>Euro Truck Simulator 2</span><span><i data-icon="users"></i><span id="server-population">— players</span></span><span id="ets2-version" title="ETS2 version required by the running server">ETS2 —</span><span id="instance-identifier">—</span></div></div></div><div class="power" id="power-controls"><button class="button btn start" data-power="start"><i data-icon="play"></i>Start</button><button class="button btn" data-power="restart"><i data-icon="refresh"></i>Restart</button><button class="button btn" data-power="stop"><i data-icon="stop"></i>Stop</button><button class="button btn danger-quiet" data-power="kill"><i data-icon="x"></i>Kill</button></div></section>
    <div id="horizontal-navigation" class="horizontal-navigation" hidden><button id="nav-previous" class="nav-scroll icon-button" type="button" aria-label="Previous navigation items" title="Previous navigation items"><i data-icon="chevron-left"></i></button><div id="horizontal-nav-slot"></div><button id="nav-next" class="nav-scroll icon-button" type="button" aria-label="Next navigation items" title="Next navigation items"><i data-icon="chevron-right"></i></button></div>
-   <main><div class="page-head"><div><span id="page-eyebrow" class="sr-only">Server</span><h1 id="page-title">Overview</h1><p id="page-description">Your server, at a glance.</p></div><span class="page-live-note" id="updated">Waiting for server data</span></div><div id="connection-error" class="connection-error" role="status" hidden></div><div id="guide-banner" hidden></div><div id="content" tabindex="-1"></div></main>
+   <main><div class="page-head"><div><span id="page-eyebrow" class="sr-only">Server</span><h1 id="page-title">Overview</h1><p id="page-description">Your server, at a glance.</p></div><span class="page-live-note" id="updated">Waiting for server data</span></div><div id="connection-error" class="connection-error" role="status" hidden></div><div id="guide-banner" hidden></div><section id="server-picture" class="panel" aria-labelledby="server-picture-title" hidden>
+   <div class="panel-head"><div><h2 class="panel-title" id="server-picture-title">Server profile picture</h2><div class="panel-sub">Used as this server’s logo in the HeavyMP Launcher list and server page.</div></div></div>
+   <div class="panel-body">
+    <div class="server-picture-row">
+     <div class="server-picture-preview"><img alt="Current server profile picture" hidden><i data-picture-placeholder data-icon="truck" aria-hidden="true"></i></div>
+     <form><label>Choose a picture<input type="file" accept="image/png,image/jpeg,image/webp"></label><button class="button primary small" type="submit" disabled>Save picture</button><button class="button small" type="button" data-remove-picture disabled>Remove picture</button></form>
+    </div>
+    <p class="hint">PNG, JPEG, or WebP up to 8 MB.</p><p class="settings-message" role="status" hidden></p>
+   </div>
+  </section><section id="dealer-picture" class="panel" aria-labelledby="dealer-picture-title" hidden>
+   <div class="panel-head"><div><h2 id="dealer-picture-title" class="panel-title">In-game truck dealer</h2><div class="panel-sub">Set the name and icon shown on this server’s dealer tile in ETS2.</div></div></div>
+   <form class="panel-body backup-create-form">
+    <label>Dealer name<input name="name" type="text" maxlength="24" placeholder="HeavyMP" disabled></label>
+    <label>Dealer icon<input name="icon" type="file" accept="image/png,image/jpeg,image/webp" disabled></label>
+    <p>Full-color PNG, JPEG, or WebP up to 8 MB. Images are fitted to a transparent 512 × 512 canvas.</p>
+    <p data-dealer-icon-state>Using the HeavyMP icon.</p>
+    <div><label><span><input name="removeIcon" type="checkbox" disabled> Restore the HeavyMP icon</span></label></div>
+    <div><button class="button primary small" type="submit" disabled>Save dealer branding</button></div>
+    <p class="settings-message" role="status" hidden></p>
+   </form>
+  </section><section id="launcher-server-page" class="panel" aria-labelledby="launcher-server-page-title" hidden>
+   <div class="panel-head"><div><h2 id="launcher-server-page-title" class="panel-title">Launcher server page</h2><div class="panel-sub">Edit what players see when they open this server’s page.</div></div></div>
+   <form class="panel-body backup-create-form">
+    <label>Description<textarea name="description" rows="3" maxlength="2000" disabled></textarea></label>
+    <label>Banner image URL<input name="bannerUrl" type="url" maxlength="512" placeholder="https://" disabled></label>
+    <div class="grid-two">
+     <label>Website URL<input name="websiteUrl" type="url" maxlength="512" placeholder="https://" disabled></label>
+     <label>Discord invite URL<input name="discordUrl" type="url" maxlength="512" placeholder="https://discord.gg/" disabled></label>
+     <label>WhatsApp link<input name="whatsappUrl" type="url" maxlength="512" placeholder="https://chat.whatsapp.com/" disabled></label>
+    </div>
+    <label>Custom HTML<textarea name="html" rows="7" maxlength="24576" spellcheck="false" disabled></textarea></label>
+    <p>Use HTML for headings, images and links. <code>og:title</code> adds a headline. <code>description</code> and <code>og:image</code> provide fallbacks for the description and banner fields.</p>
+    <label>Custom CSS<textarea name="css" rows="5" maxlength="8192" spellcheck="false" disabled></textarea></label>
+    <div><button class="button primary small" type="submit" disabled>Save server page</button></div>
+    <p class="settings-message" role="status" hidden></p>
+   </form>
+  </section><div id="content" tabindex="-1"></div></main>
    <footer class="page-footer"><span id="footer-name">HVMP Server Manager</span><span>HeavyMP Server 1.0.2 · <a href="/manager/font-manrope-OFL.txt" target="_blank" rel="noopener">Font licence</a></span></footer>
   </div>
  </div>

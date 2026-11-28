@@ -1,6 +1,6 @@
 // Shared English connection and moderation messages for the launcher and client.
 /** Refus qui arrêtent les tentatives automatiques (une action du joueur ou de l'équipe est nécessaire). */
-export const FATAL_REFUSALS = new Set(['banned', 'kicked', 'update_required','staff_only','staff_vehicle_required','map_module_mismatch']);
+export const FATAL_REFUSALS = new Set(['banned', 'kicked', 'update_required','staff_only','staff_vehicle_required','map_module_mismatch','optional_mods_disabled','optional_order_changed']);
 
 const utc = value => {
   const date = new Date(value);
@@ -25,6 +25,8 @@ export function describeRefusal({ code, until, reason } = {}) {
     case 'identity_in_use': return 'This profile is already connected. Close the other launcher.';
     case 'access_denied': return 'Access denied by the server.';
     case 'map_module_mismatch': return 'This server requires a different ETS2 map module. Start HeavyMP with the correct career and an up-to-date launcher.';
+    case 'optional_mods_disabled': return 'This server has disabled optional mods. Close ETS2 and play again without them.';
+    case 'optional_order_changed': return 'The server optional load order changed. Close ETS2 and launch again using the latest launcher.';
     case 'map_mismatch': return 'Map mismatch. Update HeavyMP and restart ETS2 from the launcher.';
     case 'game_version': return 'Game version not compatible with the server.';
     case 'name': return 'Name rejected by the server.';

@@ -18,6 +18,7 @@ Example response while the game is stopped:
   "serverVersion": "1.0.2",
   "gameVersion": "1.62.3.3s",
   "protocol": 1,
+  "allowOptionalMods": false,
   "playerCount": 0,
   "maxPlayers": 2000,
   "map": null,
@@ -37,6 +38,7 @@ Example response while the game is stopped:
 
 - `status` is one of `stopped`, `starting`, `running`, `stopping` or
   `crashed`. The instance can be saved to a launcher list in any state.
+- To discover or request the optional mod allowlist, send `X-HeavyMP-Optional-Allowlist: 1` on the discovery and manifest requests. For compatible launchers, `allowOptionalMods` indicates the running server’s permission, and `optionalOrder` in the manifest provides the approved slots and their revision. Shared archives remain available to older launchers.
 - `map`, when available, contains the active `module` and `revision`. The
   manifest route provides the full content list, which a launcher should
   verify before connecting.

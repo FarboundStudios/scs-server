@@ -1,6 +1,7 @@
 import {open,readFile,lstat} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {MAX_ADDON_ORDER_BYTES,optionalSlots} from '../shared/optional-order.mjs';
 
 export const addonName=name=>typeof name==='string'&&/^[\p{L}\p{N}][^/\\\u0000-\u001f\u007f:]{0,179}\.(?:scs|zip)$/iu.test(name);
 // Keep the public .scs contract understood by installed clients. Bytes are not
@@ -12,14 +13,14 @@ export function publicAddonName(name){
  return stem.slice(0,65)+'-'+createHash('sha256').update(name).digest('hex').slice(0,12)+'.scs';
 }
 export async function addonOrder(directory,names,log=()=>{}){
- let config={};try{const file=join(directory,'order.json'),s=await lstat(file);if(!s.isFile()||s.isSymbolicLink()||s.size>65536)throw Error('Invalid order.json.');config=JSON.parse(await readFile(file,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
- if(!config||typeof config!=='object'||Array.isArray(config)||Object.keys(config).some(k=>!['schema','order','disabled'].includes(k))||config.schema!==undefined&&config.schema!==1)throw Error('Invalid addons/order.json configuration.');
+ let config={};try{const file=join(directory,'order.json'),s=await lstat(file);if(!s.isFile()||s.isSymbolicLink()||s.size>MAX_ADDON_ORDER_BYTES)throw Error('Invalid order.json.');config=JSON.parse(await readFile(file,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
+ if(!config||typeof config!=='object'||Array.isArray(config)||Object.keys(config).some(k=>!['schema','order','disabled','optional'].includes(k))||config.schema!==undefined&&config.schema!==1)throw Error('Invalid addons/order.json configuration.');
  const lists={};for(const key of ['order','disabled']){const values=config[key]??[];if(!Array.isArray(values)||values.length>256||values.some(n=>!addonName(n))||new Set(values.map(n=>n.toLowerCase())).size!==values.length)throw Error('Liste '+key+' is invalid in addons/order.json.');lists[key]=values;}
  const existing=new Map(names.map(n=>[n.toLowerCase(),n]));if(existing.size!==names.length)throw Error('Duplicate add-on names ignoring case.');
  for(const name of [...lists.order,...lists.disabled])if(!existing.has(name.toLowerCase()))log('Add-ons: skipped missing entry in order.json: '+name);
  const disabled=new Set(lists.disabled.map(n=>n.toLowerCase())),specified=new Set(lists.order.map(n=>n.toLowerCase()));
  const selected=[...names.filter(n=>!specified.has(n.toLowerCase())),...lists.order.map(n=>existing.get(n.toLowerCase())).filter(Boolean)].filter(n=>!disabled.has(n.toLowerCase()));
- return {selected,disabled:names.filter(n=>disabled.has(n.toLowerCase()))};
+ return {selected,disabled:names.filter(n=>disabled.has(n.toLowerCase())),optional:optionalSlots(config.optional??[])};
 }
 async function exact(file,offset,size){const b=Buffer.alloc(size);const result=await file.read(b,0,size,offset);if(result.bytesRead!==size)throw Error('Truncated add-on index.');return b;}
 async function archiveIndex(path){
