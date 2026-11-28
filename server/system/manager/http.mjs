@@ -149,7 +149,7 @@ export async function createManagerHttp({host='0.0.0.0',port,auth,supervisor,log
     return instances?.ready?json(res,400,{error:'confirmation_required'}):json(res,503,{error:'instance_registry_unavailable'});
    if(req.headers['content-type']!=='application/octet-stream')return json(res,400,{error:'binary_required'});
    req.setTimeout(60000,()=>req.destroy());
-   try{return json(res,200,route==='instances/import-pack'?await instances.importPack(req,session.profile.steamId,allowed):
+   try{return json(res,200,route==='instances/import-pack'?await instances.importPack(req,session.profile.steamId,allowed,url.searchParams.get('publicOrigin')):
     await operations.backups.upload(req,session.profile.steamId));}
    catch(error){req.resume();throw error;}
    finally{req.setTimeout(0);}

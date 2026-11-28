@@ -28,10 +28,11 @@ function sendAddon(file,revision,progress){
   xhr.send(file);
  });
 }
-async function importBackupFile(file,progress,instance,{createInstance=false}={}){
+async function importBackupFile(file,progress,instance,{createInstance=false,publicOrigin=''}={}){
  return new Promise((resolve,reject)=>{
   const xhr=new XMLHttpRequest();
-  xhr.open('POST',createInstance?managerApi('instances/import-pack',null):managerApi('backups/import',instance));
+  const importRoute=publicOrigin?'instances/import-pack?'+new URLSearchParams({publicOrigin}):'instances/import-pack';
+  xhr.open('POST',createInstance?managerApi(importRoute,null):managerApi('backups/import',instance));
   xhr.timeout=2*60*60*1000;
   xhr.setRequestHeader('content-type','application/octet-stream');
   xhr.setRequestHeader('x-hvmp-csrf',document.querySelector('meta[name="hvmp-csrf"]').content);
@@ -422,7 +423,14 @@ export function createAdminViews({api,esc,panel,empty,metric,num,size,time,getSt
    const file=picker.files[0];
    picker.value='';
    if(!file||uploading)return;
-   if(!await confirmAction('Import this server pack?','This creates a stopped instance with the pack’s settings, shared mods, scripts and delegated roles. Only import packs from a source you trust.',false))return;
+   const options=await dialog({
+    title:'Import server pack',
+    description:'The pack provides the server name, settings, shared mods, scripts and delegated roles. Enter a public address if players will connect through a reverse proxy. Only import packs you trust.',
+    fields:[{name:'publicOrigin',label:'Public HTTPS origin (optional)',type:'url',maxLength:256}],
+    submit:'Import server pack'
+   });
+   if(!options)return;
+   const publicOrigin=options.publicOrigin.trim();
    const progress=root().querySelector('.instance-import-progress');
    if(!progress)return;
    const meter=progress.querySelector('progress'),message=progress.querySelector('[role=status]');
@@ -432,10 +440,10 @@ export function createAdminViews({api,esc,panel,empty,metric,num,size,time,getSt
     const result=await importBackupFile(file,bytes=>{
      meter.value=bytes;
      if(bytes===file.size)message.textContent='Verifying the pack and creating the instance…';
-    },null,{createInstance:true});
+    },null,{createInstance:true,publicOrigin});
     notice(result.instance.name+' imported on port '+result.instance.port+'. It is ready to start.');
     if(current==='instances')await load('instances');
-   }catch(error){message.textContent=friendly(error.message);meter.hidden=true;}
+   }catch(error){message.textContent=error.message==='invalid_instance'?'Use an HTTPS origin such as https://mp.example.com.':friendly(error.message);meter.hidden=true;}
    finally{uploading=false;importButton.disabled=false;}
   };
   root().querySelector('[data-action="delete-all"]').onclick=async e=>{

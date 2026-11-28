@@ -71,21 +71,31 @@ test('importing a full pack creates an isolated stopped instance from an empty r
  assert.deepEqual(manager.instances.list().items,[]);
  const endpoint=origin+'/manager/api/instances/import-pack';
  const headers={...session(manager,steamId,'a'),Origin:origin,'Content-Type':'application/octet-stream','X-HVMP-Trusted-Pack':'1'};
- const post=(body,override={})=>fetch(endpoint,{method:'POST',headers:{...headers,...override},body});
+ const post=(body,override={},publicOrigin='')=>fetch(endpoint+(publicOrigin?'?'+new URLSearchParams({publicOrigin}):''),{
+  method:'POST',headers:{...headers,...override},body,
+ });
  assert.equal((await post(file,{'X-HVMP-Trusted-Pack':'0'})).status,400);
  const corrupt=Buffer.from(file);corrupt[corrupt.length-1]^=0xff;
  assert.equal((await post(corrupt)).status,400);
  assert.deepEqual(await readdir(join(data,'instances')),['instances.json']);
- const response=await post(file);
+ const invalidOrigin=await post(file,{},'http://mp.example.com');
+ assert.equal(invalidOrigin.status,400);
+ assert.equal((await invalidOrigin.json()).error,'invalid_instance');
+ const publicOrigin='https://mp.example.com';
+ const response=await post(file,{},publicOrigin);
  assert.equal(response.status,200,await response.clone().text());
  const {instance}=await response.json();
  assert.equal(instance.id,'test-relay');
  assert.equal(instance.name,'Test Relay');
  assert.equal(instance.state,'stopped');
  assert.notEqual(instance.port,port);
+ assert.equal(instance.managerUrl,publicOrigin+'/manager/');
  assert.equal(await readFile(join(instance.folder,'addons','asset.scs'),'utf8'),'test content');
  assert.equal(await readFile(join(instance.folder,'scripts','custom-module','index.mjs'),'utf8'),'export const ready = true;');
  assert.equal(manager.instances.managers.get(instance.id).auth.members.roleFor(delegate),'operator');
+ const duplicateOrigin=await post(file,{},publicOrigin);
+ assert.equal(duplicateOrigin.status,409);
+ assert.equal((await duplicateOrigin.json()).error,'instance_origin_in_use');
  const {server:oldIdentity,...legacy}=value;
  const legacyResponse=await post(await archive(legacy));
  assert.equal(legacyResponse.status,200,await legacyResponse.clone().text());

@@ -152,7 +152,7 @@ export class ManagerInstances{
    return this.list();
   });
  }
- async importPack(stream,actor,allowed){
+ async importPack(stream,actor,allowed,publicOrigin=null){
   return this.importLock.run(async()=>{
    if(!this.ready)throw Error('instance_registry_unavailable');
    if(this.entries.size>=MAX_INSTANCES)throw Error('instance_limit');
@@ -183,7 +183,8 @@ export class ManagerInstances{
      for(let tries=0;tries<32&&port<=65535;port++){
       if(registered.has(port))continue;
       tries++;
-      entry=definition({id,name,port,game:'ets2',storageId});
+      entry=definition({id,name,port,game:'ets2',publicOrigin,storageId});
+      this.checkUnique(entry);
       try{manager=await this.ensureManager(entry);break;}
       catch(error){
        if(error.message!=='instance_port_in_use'){
